@@ -50,11 +50,14 @@ export default function VaultsPage() {
                     font-family: 'Press Start 2P', 'Fira Mono', monospace;
                 }
                 .cyberpunk-card {
-                    border-radius: 1px;
                     border: 2.5px solid #a855f7;
                     background: linear-gradient(135deg, rgba(40,20,60,0.85) 80%, #2d0a3a 100%);
-                    /* box-shadow removed */
+                    /* Remove all cuts, standard rectangle border */
                     transition: border 0.2s, box-shadow 0.2s, transform 0.18s;
+                    will-change: transform;
+                }
+                .cyberpunk-card:hover {
+                    transform: perspective(600px) rotateY(-6deg) scale(1.01);
                 }
                 .cyberpunk-btn {
                     background: linear-gradient(90deg, #a855f7 60%, #c084fc 100%);
@@ -142,7 +145,7 @@ export default function VaultsPage() {
                             {vaults.map((vault) => (
                                 <div 
                                     key={vault.id} 
-                                    className="cyberpunk-card p-7 shadow-xl flex flex-col gap-5 cursor-pointer relative group"
+                                    className="cyberpunk-card p-7 flex flex-col gap-5 cursor-pointer relative group"
                                     onClick={() => handleVaultClick(vault.id!)}
                                 >
                                     <div className="flex items-center justify-between mb-2">
@@ -166,9 +169,8 @@ export default function VaultsPage() {
                                         }}
                                         className="mt-4 w-full px-4 py-3 cyberpunk-btn shadow-md font-pixel tracking-widest flex items-center justify-center gap-2"
                                     >
-                                        Chat <span className="text-lg pb-1">🌶️</span>
+                                        Convince <span className="text-lg pb-1">🌶️</span>
                                     </button>
-                                    <div className="absolute -inset-1.5 rounded-2xl pointer-events-none group-hover:shadow-[0_0_32px_8px_#a855f7aa] transition"></div>
                                 </div>
                             ))}
                         </div>
