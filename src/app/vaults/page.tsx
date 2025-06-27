@@ -6,12 +6,203 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { db, Vault } from '@/lib/database';
 
+interface TaskPopupProps {
+    vault: Vault;
+    onClose: () => void;
+    onProceedToChat: () => void;
+}
+
+function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
+    const { address } = useAccount();
+    const [taskStatus, setTaskStatus] = useState({
+        followed: false,
+        retweeted: false
+    });
+    const [isUpdatingCredits, setIsUpdatingCredits] = useState(false);
+
+    // Load task status from localStorage on mount
+    useEffect(() => {
+        if (vault.id && address) {
+            const savedStatus = localStorage.getItem(`vault_${vault.id}_tasks_${address}`);
+            if (savedStatus) {
+                setTaskStatus(JSON.parse(savedStatus));
+            }
+        }
+    }, [vault.id, address]);
+
+    // Save task status to localStorage
+    const saveTaskStatus = (newStatus: typeof taskStatus) => {
+        if (vault.id && address) {
+            localStorage.setItem(`vault_${vault.id}_tasks_${address}`, JSON.stringify(newStatus));
+            setTaskStatus(newStatus);
+        }
+    };
+
+    // Handle follow button click
+    const handleFollow = async () => {
+        if (!vault.sponsor_links?.x_profile || taskStatus.followed) return;
+        
+        try {
+            setIsUpdatingCredits(true);
+            
+            // Extract username from X profile URL
+            const xProfileUrl = vault.sponsor_links.x_profile as string;
+            const usernameMatch = xProfileUrl.match(/x\.com\/([^\/\?]+)/);
+            const username = usernameMatch ? usernameMatch[1] : '';
+            
+            if (username) {
+                // Open X follow intent
+                window.open(`https://twitter.com/intent/follow?screen_name=${username}`, '_blank');
+                
+                // Update user credits
+                if (address) {
+                    const currentUser = await db.getUserByWalletAddress(address);
+                    if (currentUser) {
+                        await db.updateUserCredits(address, (currentUser.credits || 0) + 1);
+                    }
+                }
+                
+                // Mark task as completed
+                const newStatus = { ...taskStatus, followed: true };
+                saveTaskStatus(newStatus);
+            }
+        } catch (error) {
+            console.error('Error handling follow:', error);
+        } finally {
+            setIsUpdatingCredits(false);
+        }
+    };
+
+    // Handle retweet button click
+    const handleRetweet = async () => {
+        if (!vault.sponsor_links?.announcement_tweet || taskStatus.retweeted) return;
+        
+        try {
+            setIsUpdatingCredits(true);
+            
+            // Extract tweet ID from announcement tweet URL
+            const tweetUrl = vault.sponsor_links.announcement_tweet as string;
+            const tweetIdMatch = tweetUrl.match(/\/status\/(\d+)/);
+            const tweetId = tweetIdMatch ? tweetIdMatch[1] : '';
+            
+            if (tweetId) {
+                // Open X retweet intent
+                window.open(`https://twitter.com/intent/retweet?tweet_id=${tweetId}`, '_blank');
+                
+                // Update user credits
+                if (address) {
+                    const currentUser = await db.getUserByWalletAddress(address);
+                    if (currentUser) {
+                        await db.updateUserCredits(address, (currentUser.credits || 0) + 1);
+                    }
+                }
+                
+                // Mark task as completed
+                const newStatus = { ...taskStatus, retweeted: true };
+                saveTaskStatus(newStatus);
+            }
+        } catch (error) {
+            console.error('Error handling retweet:', error);
+        } finally {
+            setIsUpdatingCredits(false);
+        }
+    };
+
+    // Check if user has already completed both tasks
+    const bothTasksCompleted = taskStatus.followed && taskStatus.retweeted;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="bg-gray-900 border-2 border-purple-700 rounded-2xl p-6 max-w-md w-full shadow-lg">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-purple-400 font-pixel">{vault.name} Tasks</h3>
+                    <button 
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white text-xl font-bold"
+                    >
+                        ×
+                    </button>
+                </div>
+                
+                <div className="space-y-4 mb-6">
+                    <p className="text-white font-pixel text-sm">
+                        Complete these tasks to earn credits:
+                    </p>
+                    
+                    {/* Follow Task */}
+                    {vault.sponsor_links?.x_profile && (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-300 font-pixel">Follow Team</span>
+                                {taskStatus.followed && (
+                                    <span className="text-green-400 text-lg">✓</span>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleFollow}
+                                disabled={taskStatus.followed || isUpdatingCredits}
+                                className={`px-4 py-2 rounded-lg font-pixel text-xs transition ${
+                                    taskStatus.followed
+                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 border-2 border-blue-800'
+                                }`}
+                            >
+                                {taskStatus.followed ? 'Followed' : 'Follow (+1 Credit)'}
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Retweet Task */}
+                    {vault.sponsor_links?.announcement_tweet && (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-300 font-pixel">Retweet</span>
+                                {taskStatus.retweeted && (
+                                    <span className="text-green-400 text-lg">✓</span>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleRetweet}
+                                disabled={taskStatus.retweeted || isUpdatingCredits}
+                                className={`px-4 py-2 rounded-lg font-pixel text-xs transition ${
+                                    taskStatus.retweeted
+                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : 'bg-green-600 text-white hover:bg-green-700 border-2 border-green-800'
+                                }`}
+                            >
+                                {taskStatus.retweeted ? 'Retweeted' : 'Retweet (+1 Credit)'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2 rounded-lg bg-gray-600 text-white border-2 border-gray-800 font-pixel text-sm transition hover:bg-gray-700"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onProceedToChat}
+                        className="flex-1 px-4 py-2 rounded-lg bg-purple-600 text-white border-2 border-purple-800 font-pixel text-sm transition hover:bg-purple-700"
+                    >
+                        {bothTasksCompleted ? 'Chat Now' : 'Skip to Chat'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function VaultsPage() {
     const router = useRouter();
-    const { isConnected } = useAccount();
+    const { isConnected, address } = useAccount();
     const [vaults, setVaults] = useState<Vault[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedVault, setSelectedVault] = useState<Vault | null>(null);
+    const [showTaskPopup, setShowTaskPopup] = useState(false);
 
     // Fetch vaults from database
     useEffect(() => {
@@ -35,6 +226,38 @@ export default function VaultsPage() {
 
     const handleVaultClick = (vaultId: number) => {
         router.push(`/vaults/verification?id=${vaultId}`);
+    };
+
+    const handleChatClick = (vault: Vault) => {
+        if (!address) return;
+        
+        // Check if vault has any social links to show tasks for
+        const hasXProfile = !!vault.sponsor_links?.x_profile;
+        const hasAnnouncementTweet = !!vault.sponsor_links?.announcement_tweet;
+        
+        // If no social links at all, go directly to chat
+        if (!hasXProfile && !hasAnnouncementTweet) {
+            router.push(`/trovio-chat?vaultId=${vault.id}`);
+            return;
+        }
+        
+        // Check if user has already completed available tasks for this vault
+        const savedStatus = localStorage.getItem(`vault_${vault.id}_tasks_${address}`);
+        if (savedStatus) {
+            const taskStatus = JSON.parse(savedStatus);
+            const followCompleted = !hasXProfile || taskStatus.followed;
+            const retweetCompleted = !hasAnnouncementTweet || taskStatus.retweeted;
+            
+            // If all available tasks are completed, go directly to chat
+            if (followCompleted && retweetCompleted) {
+                router.push(`/trovio-chat?vaultId=${vault.id}`);
+                return;
+            }
+        }
+        
+        // Show task popup for incomplete tasks
+        setSelectedVault(vault);
+        setShowTaskPopup(true);
     };
 
     const formatSponsorAddress = (address: string) => {
@@ -141,7 +364,7 @@ export default function VaultsPage() {
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            router.push(`/trovio-chat?vaultId=${vault.id}`);
+                                            handleChatClick(vault);
                                         }}
                                         className="mt-4 w-full px-4 py-2 rounded-lg bg-blue-600 text-white border-2 border-blue-800 shadow-md font-pixel text-sm tracking-wider transition hover:bg-blue-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-95"
                                     >
@@ -157,6 +380,22 @@ export default function VaultsPage() {
                 <footer className="w-full text-center text-xs text-gray-500 py-4 tracking-widest z-10 font-pixel">
                     TROVIO / ALL RIGHTS RESERVED @ 2025
                 </footer>
+
+                {/* Task Popup */}
+                {showTaskPopup && selectedVault && (
+                    <TaskPopup
+                        vault={selectedVault}
+                        onClose={() => {
+                            setShowTaskPopup(false);
+                            setSelectedVault(null);
+                        }}
+                        onProceedToChat={() => {
+                            setShowTaskPopup(false);
+                            router.push(`/trovio-chat?vaultId=${selectedVault.id}`);
+                            setSelectedVault(null);
+                        }}
+                    />
+                )}
             </div>
         </>
     )
