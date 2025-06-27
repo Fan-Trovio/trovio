@@ -181,7 +181,7 @@ export default function TrovioChatPage() {
                     </span>
                   )}
                   <div
-                    className={`p-2 rounded-lg font-pixel text-xs ${msg.role === 'user' ? 'cyberpunk-bubble-user' : 'cyberpunk-bubble'} flex items-center max-w-[90%] break-words inline-block`}
+                    className={`p-2 rounded-lg font-pixel text-xs ${msg.role === 'user' ? 'cyberpunk-bubble-user' : 'cyberpunk-bubble'}  items-center max-w-[90%] break-words inline-block`}
                     style={{
                       marginLeft: msg.role === 'assistant' ? 0 : 'auto',
                       marginRight: msg.role === 'user' ? 0 : 'auto',
