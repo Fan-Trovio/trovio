@@ -105,18 +105,13 @@ export default function Home() {
             {/* Logo */}
             <span className="text-purple-400 text-3xl font-extrabold tracking-widest font-pixel">TROVIO</span>
           </div>
-          <nav className="flex gap-12 text-lg font-bold text-gray-300">
-            <Link href={'/vaults'}>
-            <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95">
-               Vault
-            </button>
-            </Link>
-            <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95">
+          <div className="flex items-center gap-4">
+            <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95"
+              onClick={() => window.open('https://docs.trovio.com', '_blank')}
+            >
               Docs
             </button>
-          </nav>
-          <div>
-          <ConnectButton chainStatus="none"/>
+            <ConnectButton chainStatus="none"/>
           </div>
         </header>
 

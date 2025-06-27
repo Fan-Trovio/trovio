@@ -19,6 +19,24 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
         retweeted: false
     });
     const [isUpdatingCredits, setIsUpdatingCredits] = useState(false);
+    const [fanTokens, setFanTokens] = useState<number | null>(null);
+    const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+    const [hasCheckedTokens, setHasCheckedTokens] = useState(false);
+
+    // Fan token buy links mapping
+    const fanTokenBuyLinks: { [key: string]: string } = {
+        'PSG': 'https://app.fanx.xyz/trade/swap',
+        'SPURS': 'https://app.fanx.xyz/trade/swap',
+        'BAR': 'https://app.fanx.xyz/trade/swap',
+        'ACM': 'https://app.fanx.xyz/trade/swap',
+        'OG': 'https://app.fanx.xyz/trade/swap',
+        'CITY': 'https://app.fanx.xyz/trade/swap',
+        'AFC': 'https://app.fanx.xyz/trade/swap',
+        'MENGO': 'https://app.fanx.xyz/trade/swap',
+        'JUV': 'https://app.fanx.xyz/trade/swap',
+        'NAP': 'https://app.fanx.xyz/trade/swap',
+        'ATM': 'https://app.fanx.xyz/trade/swap'
+    };
 
     // Load task status from localStorage on mount
     useEffect(() => {
@@ -36,6 +54,46 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
             localStorage.setItem(`vault_${vault.id}_tasks_${address}`, JSON.stringify(newStatus));
             setTaskStatus(newStatus);
         }
+    };
+
+    // Fetch fan tokens for the specific vault
+    const fetchFanTokens = async () => {
+        if (!address || !vault.name) return;
+        
+        setIsLoadingTokens(true);
+        try {
+            // Extract club name from vault name (assuming format like "JUV Fan Club" or "JUV")
+            const clubName = vault.name.split(' ')[0].toUpperCase();
+            
+            // Call our API endpoint to fetch fan tokens
+            const response = await fetch(`/api/fan-tokens?address=${address}&club=${clubName}`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch fan tokens');
+            }
+            
+            const data = await response.json();
+            setFanTokens(data.balance);
+            setHasCheckedTokens(true);
+            
+            // Log the source for debugging
+            console.log(`Fan tokens fetched from: ${data.source}`, data);
+            
+        } catch (error) {
+            console.error('Error fetching fan tokens:', error);
+            setFanTokens(0);
+            setHasCheckedTokens(true);
+        } finally {
+            setIsLoadingTokens(false);
+        }
+    };
+
+    // Check if user is eligible (has 10+ fan tokens)
+    const isEligible = fanTokens !== null && fanTokens >= 10;
+    
+    // Get club name for buy link
+    const getClubName = () => {
+        return vault.name.split(' ')[0].toUpperCase();
     };
 
     // Handle follow button click
@@ -112,8 +170,8 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
     const bothTasksCompleted = taskStatus.followed && taskStatus.retweeted;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-            <div className="bg-gray-900 border-2 border-purple-700 rounded-2xl p-6 max-w-md w-full shadow-lg">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+            <div className="bg-gray-900/95 border-2 border-purple-700 rounded-2xl p-6 max-w-md w-full shadow-lg backdrop-blur-md">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-purple-400 font-pixel">{vault.name} Tasks</h3>
                     <button 
@@ -174,6 +232,76 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
                             </button>
                         </div>
                     )}
+
+                    {/* Fan Token Check */}
+                    <div className="border-t border-purple-700 pt-4 mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-300 font-pixel">Fan Token Check</span>
+                            {hasCheckedTokens && isEligible && (
+                                <span className="text-green-400 text-lg">✓</span>
+                            )}
+                        </div>
+                        
+                        {!hasCheckedTokens ? (
+                            <button
+                                onClick={fetchFanTokens}
+                                disabled={isLoadingTokens}
+                                className={`w-full px-4 py-2 rounded-lg font-pixel text-xs transition ${
+                                    isLoadingTokens
+                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : 'bg-yellow-600 text-white hover:bg-yellow-700 border-2 border-yellow-800'
+                                }`}
+                            >
+                                {isLoadingTokens ? 'Checking...' : 'Check Available Tokens'}
+                            </button>
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="text-center p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                                    <p className="text-sm text-gray-300 font-pixel">
+                                        Your {getClubName()} tokens: <span className={`font-bold ${isEligible ? 'text-green-400' : 'text-red-400'}`}>
+                                            {fanTokens !== null ? fanTokens.toFixed(6).replace(/\.?0+$/, '') : '0'}
+                                        </span>
+                                    </p>
+                                    <p className="text-xs text-gray-400 font-pixel mt-1">
+                                        Required: 10 tokens minimum
+                                    </p>
+                                    {fanTokens !== null && (
+                                        <p className={`text-xs font-pixel mt-1 ${isEligible ? 'text-green-400' : 'text-red-400'}`}>
+                                            {isEligible ? '✓ Eligible for chat' : '✗ Not eligible for chat'}
+                                        </p>
+                                    )}
+                                </div>
+                                
+                                {!isEligible && fanTokenBuyLinks[getClubName()] && (
+                                    <div className="text-center">
+                                        <p className="text-xs text-red-400 font-pixel mb-2">
+                                            You need more {getClubName()} tokens to chat
+                                        </p>
+                                        <a
+                                            href={fanTokenBuyLinks[getClubName()]}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-block px-4 py-2 rounded-lg bg-purple-600 text-white border-2 border-purple-800 font-pixel text-xs transition hover:bg-purple-700"
+                                        >
+                                            Buy {getClubName()} Tokens
+                                        </a>
+                                        <p className="text-xs text-yellow-400 font-pixel mt-2">
+                                            Note: You're on testnet. Get testnet tokens from Chiliz faucet.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {/* Retry button */}
+                                <button
+                                    onClick={fetchFanTokens}
+                                    disabled={isLoadingTokens}
+                                    className="w-full mt-2 px-3 py-1 rounded-lg bg-gray-600 text-white border border-gray-700 font-pixel text-xs transition hover:bg-gray-700 disabled:opacity-50"
+                                >
+                                    {isLoadingTokens ? 'Refreshing...' : 'Refresh Balance'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 
                 <div className="flex gap-3">
@@ -185,9 +313,14 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
                     </button>
                     <button
                         onClick={onProceedToChat}
-                        className="flex-1 px-4 py-2 rounded-lg bg-purple-600 text-white border-2 border-purple-800 font-pixel text-sm transition hover:bg-purple-700"
+                        disabled={hasCheckedTokens && !isEligible}
+                        className={`flex-1 px-4 py-2 rounded-lg font-pixel text-sm transition ${
+                            hasCheckedTokens && !isEligible
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed border-2 border-gray-800'
+                                : 'bg-purple-600 text-white border-2 border-purple-800 hover:bg-purple-700'
+                        }`}
                     >
-                        {bothTasksCompleted ? 'Chat Now' : 'Skip to Chat'}
+                        {bothTasksCompleted && isEligible ? 'Chat Now' : 'Skip to Chat'}
                     </button>
                 </div>
             </div>
