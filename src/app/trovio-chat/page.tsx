@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useAccount } from 'wagmi';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther } from 'viem';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { db, Vault, User, Conversation } from '@/lib/database';
@@ -24,12 +25,69 @@ export default function TrovioChatPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [showPreloader, setShowPreloader] = useState(true);
   const [preloaderStart, setPreloaderStart] = useState<number | null>(null);
+  const [isBuyingCredits, setIsBuyingCredits] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
   
+  // Transaction hooks
+  const { data: hash, sendTransaction, error: sendError } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+  
   const vaultId = searchParams?.get('vaultId');
+
+  // Handle buy credits transaction
+  const handleBuyCredits = async () => {
+    if (!address || isBuyingCredits) return;
+    
+    try {
+      setIsBuyingCredits(true);
+      
+      // Send 5 CHZ to the specified address
+      sendTransaction({
+        to: '0xA879eB55AaD088A8a19E06610129d4CDb4f2c99b',
+        value: parseEther('5'),
+      });
+      
+    } catch (error) {
+      console.error('Error initiating transaction:', error);
+      setIsBuyingCredits(false);
+    }
+  };
+
+  // Handle successful transaction
+  useEffect(() => {
+    if (isConfirmed && isBuyingCredits && address && user) {
+      const awardCredits = async () => {
+        try {
+          // Award 5 credits to the user
+          const updatedUser = await db.updateUserCredits(address, (user.credits || 0) + 5);
+          if (updatedUser) {
+            setUser(updatedUser);
+          }
+          console.log('Transaction successful, 5 credits awarded');
+        } catch (error) {
+          console.error('Error awarding credits:', error);
+        } finally {
+          setIsBuyingCredits(false);
+        }
+      };
+      
+      awardCredits();
+    }
+  }, [isConfirmed, isBuyingCredits, address, user]);
+
+  // Handle transaction error
+  useEffect(() => {
+    if (sendError && isBuyingCredits) {
+      console.error('Transaction failed:', sendError);
+      alert('Transaction failed. Please try again.');
+      setIsBuyingCredits(false);
+    }
+  }, [sendError, isBuyingCredits]);
 
   // Real-time polling for vault amount and user credits
   useEffect(() => {
@@ -395,14 +453,18 @@ export default function TrovioChatPage() {
               </div>
             </div>
             <div className="w-full border-t border-purple-800 my-3"></div>
-            {/* Sponsor */}
-            <span className="text-purple-300 font-pixel text-xs">SPONSOR</span>
-            <div className="flex justify-between items-center w-full px-1 py-2 bg-[#22143a] rounded-lg border border-purple-900 mb-2">
-              
-              <span className="text-purple-100 font-pixel text-xs">
-                {vault.vault_sponsor ? `${vault.vault_sponsor.slice(0, 10)}...${vault.vault_sponsor.slice(-4)}` : 'Unknown'}
-              </span>
-            </div>
+            {/* Buy Credits */}
+            <button
+              onClick={handleBuyCredits}
+              disabled={isBuyingCredits || isConfirming}
+              className={`w-full px-4 py-3 rounded-lg font-pixel text-xs uppercase tracking-wider transition-all ${
+                isBuyingCredits || isConfirming
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                  : 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white transform hover:scale-105 shadow-lg border-2 border-green-800'
+              }`}
+            >
+              {isConfirming ? '⏳ Confirming...' : isBuyingCredits ? '💳 Processing...' : '💰 Buy 5 Credits (5 CHZ)'}
+            </button>
             {/* Warnings */}
             {(user.credits || 0) <= 5 && (user.credits || 0) > 0 && (
               <div className="w-full mt-3 p-2 bg-yellow-900/40 rounded border border-yellow-600">
