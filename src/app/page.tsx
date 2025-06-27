@@ -107,7 +107,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95"
-              onClick={() => window.open('https://docs.trovio.com', '_blank')}
+              onClick={() => window.open('https://og-org.gitbook.io/trovio/', '_blank')}
             >
               Docs
             </button>
