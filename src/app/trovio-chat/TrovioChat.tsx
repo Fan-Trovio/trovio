@@ -1,20 +1,19 @@
 "use client";
 
-import { Suspense, useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { db, Vault, User, Conversation } from '@/lib/database';
-import dynamic from 'next/dynamic';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-function TrovioChat() {
+export default function TrovioChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +31,7 @@ function TrovioChat() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   
+  // Transaction hooks
   const { data: hash, sendTransaction, error: sendError } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
@@ -39,11 +39,14 @@ function TrovioChat() {
   
   const vaultId = searchParams?.get('vaultId');
 
+  // Handle buy credits transaction
   const handleBuyCredits = async () => {
     if (!address || isBuyingCredits) return;
     
     try {
       setIsBuyingCredits(true);
+      
+      // Send 5 CHZ to the specified address
       sendTransaction({
         to: '0xA879eB55AaD088A8a19E06610129d4CDb4f2c99b',
         value: parseEther('5'),
@@ -55,10 +58,12 @@ function TrovioChat() {
     }
   };
 
+  // Handle successful transaction
   useEffect(() => {
     if (isConfirmed && isBuyingCredits && address && user) {
       const awardCredits = async () => {
         try {
+          // Award 5 credits to the user
           const updatedUser = await db.updateUserCredits(address, (user.credits || 0) + 5);
           if (updatedUser) {
             setUser(updatedUser);
@@ -75,6 +80,7 @@ function TrovioChat() {
     }
   }, [isConfirmed, isBuyingCredits, address, user]);
 
+  // Handle transaction error
   useEffect(() => {
     if (sendError && isBuyingCredits) {
       console.error('Transaction failed:', sendError);
@@ -83,16 +89,19 @@ function TrovioChat() {
     }
   }, [sendError, isBuyingCredits]);
 
+  // Real-time polling for vault amount and user credits
   useEffect(() => {
     if (!isConnected || !address || !vaultId || !vault || !user) return;
 
     const pollData = async () => {
       try {
+        // Fetch updated vault data
         const updatedVault = await db.getVaultById(parseInt(vaultId));
         if (updatedVault) {
           setVault(updatedVault);
         }
 
+        // Fetch updated user data
         const updatedUser = await db.getUserByWalletAddress(address);
         if (updatedUser) {
           setUser(updatedUser);
@@ -102,11 +111,13 @@ function TrovioChat() {
       }
     };
 
+    // Poll every second
     const interval = setInterval(pollData, 1000);
 
     return () => clearInterval(interval);
   }, [isConnected, address, vaultId, vault?.id, user?.id]);
 
+  // Preloader effect: set start time when loading begins
   useEffect(() => {
     if (isLoadingVault) {
       setPreloaderStart(Date.now());
@@ -114,6 +125,7 @@ function TrovioChat() {
     }
   }, [isLoadingVault]);
 
+  // Hide preloader only after both loading is done and 2 seconds have passed
   useEffect(() => {
     if (!isLoadingVault && preloaderStart !== null) {
       const elapsed = Date.now() - preloaderStart;
@@ -126,6 +138,7 @@ function TrovioChat() {
     }
   }, [isLoadingVault, preloaderStart]);
 
+  // Load conversation messages from database
   const loadConversationMessages = async (conversationId: number) => {
     try {
       setIsLoadingMessages(true);
@@ -144,8 +157,10 @@ function TrovioChat() {
     }
   };
 
+  // Create or find existing conversation
   const initializeConversation = async (userId: number, vaultId: number) => {
     try {
+      // Check if conversation already exists
       const userConversations = await db.getConversationsByUser(userId);
       const existingConversation = userConversations.find(conv => conv.vault_id === vaultId);
       
@@ -153,6 +168,7 @@ function TrovioChat() {
         setConversation(existingConversation);
         await loadConversationMessages(existingConversation.id!);
       } else {
+        // Create new conversation
         const newConversation = await db.createConversation({
           user_id: userId,
           vault_id: vaultId
@@ -167,6 +183,7 @@ function TrovioChat() {
     }
   };
 
+  // Fetch vault and user data on component mount
   useEffect(() => {
     const fetchData = async () => {
       if (!vaultId) {
@@ -181,6 +198,8 @@ function TrovioChat() {
       
       try {
         setIsLoadingVault(true);
+        
+        // Fetch vault data
         const vaultData = await db.getVaultById(parseInt(vaultId));
         if (!vaultData) {
           router.push('/vaults');
@@ -188,6 +207,7 @@ function TrovioChat() {
         }
         setVault(vaultData);
         
+        // Fetch user data
         const userData = await db.getUserByWalletAddress(address);
         if (!userData) {
           router.push('/');
@@ -195,6 +215,7 @@ function TrovioChat() {
         }
         setUser(userData);
         
+        // Initialize conversation
         await initializeConversation(userData.id!, parseInt(vaultId));
         
       } catch (error) {
@@ -212,6 +233,7 @@ function TrovioChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Save message to database
   const saveMessageToDb = async (content: string, role: 'user' | 'assistant') => {
     if (!conversation) return;
     
@@ -226,6 +248,7 @@ function TrovioChat() {
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || !canSendMessage) return;
@@ -234,12 +257,14 @@ function TrovioChat() {
     setMessages(prev => [...prev, newUserMessage]);
     setInput('');
     
+    // Save user message
     await saveMessageToDb(newUserMessage.content, 'user');
 
     setIsLoading(true);
     setIsUpdatingCredits(true);
     
     try {
+      // Deduct credit
       const updatedUser = await db.updateUserCredits(address!, (user!.credits || 0) - 1);
       if (updatedUser) {
         setUser(updatedUser);
@@ -263,6 +288,7 @@ function TrovioChat() {
       const newAssistantMessage: Message = { role: 'assistant', content: data.response };
       setMessages(prev => [...prev, newAssistantMessage]);
 
+      // Save assistant message
       await saveMessageToDb(newAssistantMessage.content, 'assistant');
 
     } catch (error: any) {
@@ -279,6 +305,7 @@ function TrovioChat() {
                          (user?.credits ?? 0) > 0 && 
                          (vault?.available_prize ?? 0) > 0;
 
+  // Function to check if assistant's message indicates rejection
   const isAttemptRejected = (msg: string) =>
     /rejected|no moni|no money|not allowed|fail|denied|no for you/i.test(msg);
 
@@ -377,7 +404,9 @@ function TrovioChat() {
           display: inline-block;
         }
       `}</style>
+      {/* Main Centered Container */}
       <div className="flex flex-row gap-10 items-stretch justify-center max-w-6xl w-full px-4 glassmorph-container">
+        {/* Left Panel */}
         <div className="w-80 flex flex-col items-center py-10 px-6 cyberpunk-panel relative h-full min-h-[500px]">
           <div 
             className="text-purple-400 text-base font-pixel mb-4 cursor-pointer hover:text-purple-300 transition self-start"
@@ -399,6 +428,7 @@ function TrovioChat() {
               Available Prize
             </div>
             <div className="w-full border-t border-purple-800 my-3"></div>
+            {/* Credits Display */}
             <div className="w-full mb-3 p-3 bg-[#2a1840] rounded-lg border border-purple-800 flex flex-col items-center">
               <div className="text-2xl font-extrabold text-yellow-400 font-pixel mb-1">
                 {user.credits || 0}
@@ -411,6 +441,7 @@ function TrovioChat() {
               </div>
             </div>
             <div className="w-full border-t border-purple-800 my-3"></div>
+            {/* Buy Credits */}
             <button
               onClick={handleBuyCredits}
               disabled={isBuyingCredits || isConfirming}
@@ -422,6 +453,7 @@ function TrovioChat() {
             >
               {isConfirming ? '⏳ Confirming...' : isBuyingCredits ? '💳 Processing...' : '💰 Buy 5 Credits (5 CHZ)'}
             </button>
+            {/* Warnings */}
             {(user.credits || 0) <= 5 && (user.credits || 0) > 0 && (
               <div className="w-full mt-3 p-2 bg-yellow-900/40 rounded border border-yellow-600">
                 <div className="text-xs text-yellow-400 font-pixel text-center">
@@ -445,23 +477,31 @@ function TrovioChat() {
             )}
           </div>
         </div>
+        {/* Chat Area */}
         <div className="flex-1 flex flex-col items-center justify-center mt-18">
+          {/* Top Title */}
           <div className="w-full flex justify-center items-center mb-10">
             <h1 className="text-3xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
               CONVINCE TROVIO TO UNLOCK VAULT
             </h1>
           </div>
+          {/* Chat Window */}
           <div className="w-full cyberpunk-panel p-8 flex flex-col h-[320px] mb-4 mt-5 relative overflow-x-auto">
+            {/* Loading Messages */}
             {isLoadingMessages && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
                 <div className="text-purple-400 font-pixel animate-pulse">Loading conversation...</div>
               </div>
             )}
             
+            {/* Centered Attempt Rejected and Avatar */}
             {messages.some(msg => msg.role === 'assistant' && isAttemptRejected(msg.content)) && (
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                
+                
               </div>
             )}
+            {/* Chat Bubbles */}
             <div className="flex-1 flex flex-col justify-end">
               {messages.map((msg, idx) => (
                 <div
@@ -501,6 +541,7 @@ function TrovioChat() {
               <div ref={messagesEndRef} />
             </div>
           </div>
+          {/* Input Area */}
           <form onSubmit={handleSubmit} className="w-full mt-2">
             <div className="flex items-center w-full bg-transparent rounded-2xl border border-purple-500/60 backdrop-blur-md" style={{ background: 'rgba(60, 20, 80, 0.35)' }}>
               <input
@@ -544,6 +585,7 @@ function TrovioChat() {
       <style jsx>{`
         .glassmorph-container {
           background: rgba(40, 20, 60, 0.55);
+          /* border-radius removed for sharp corners */
           box-shadow: 0 4px 32px 0 rgba(80, 40, 120, 0.18);
           backdrop-filter: blur(18px) saturate(140%);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
@@ -554,15 +596,4 @@ function TrovioChat() {
       `}</style>
     </div>
   );
-}
-
-const TrovioChatPage = () => {
-  const TrovioChatClient = dynamic(() => Promise.resolve(TrovioChat), { ssr: false });
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <TrovioChatClient />
-    </Suspense>
-  )
-}
-
-export default TrovioChatPage; 
+} 
