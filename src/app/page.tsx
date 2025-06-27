@@ -2,21 +2,84 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { db } from '@/lib/database';
 
 export default function Home() {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const router = useRouter();
+  const [userExists, setUserExists] = useState(false);
+  const [isCheckingUser, setIsCheckingUser] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [buttonsEnabled, setButtonsEnabled] = useState(false);
 
+  // Check/create user when wallet is connected
   useEffect(() => {
-    if (isConnected) {
-      const timeout = setTimeout(() => {
-        router.push('/vaults');
-      }, 3000);
-      return () => clearTimeout(timeout);
+    const checkOrCreateUser = async () => {
+      if (isConnected && address) {
+        console.log('Wallet connected:', address);
+        setIsCheckingUser(true);
+        setButtonsEnabled(false);
+        
+        try {
+          // Check if user exists
+          const existingUser = await db.getUserByWalletAddress(address);
+          
+          if (existingUser) {
+            console.log('User exists:', existingUser);
+            setUserExists(true);
+            setButtonsEnabled(true);
+          } else {
+            console.log('User does not exist, creating new user...');
+            setIsCreatingUser(true);
+            
+            // Create new user
+            const newUser = await db.createOrUpdateUser(address, {
+              credits: 100 // Give new users 100 starting credits
+            });
+            
+            if (newUser) {
+              console.log('User created successfully:', newUser);
+              setUserExists(true);
+              setButtonsEnabled(true);
+            } else {
+              console.error('Failed to create user');
+              setButtonsEnabled(false);
+            }
+            setIsCreatingUser(false);
+          }
+        } catch (error) {
+          console.error('Error checking/creating user:', error);
+          setButtonsEnabled(false);
+        } finally {
+          setIsCheckingUser(false);
+        }
+      } else {
+        // Wallet disconnected
+        setUserExists(false);
+        setButtonsEnabled(false);
+        setIsCheckingUser(false);
+        setIsCreatingUser(false);
+      }
+    };
+
+    checkOrCreateUser();
+  }, [isConnected, address]);
+
+  // Handle navigation to vaults page
+  const handleProceedClick = () => {
+    if (buttonsEnabled) {
+      router.push('/vaults');
     }
-  }, [isConnected, router]);
+  };
+
+  // Handle navigation to create vault page
+  const handleCreateVaultClick = () => {
+    if (buttonsEnabled) {
+      router.push('/vault-creation');
+    }
+  };
 
   return (
     <>
@@ -65,13 +128,52 @@ export default function Home() {
               <h1 className="text-7xl font-pixel font-bold text-white tracking-tighter leading-tight">
                 You always<br />are winner
               </h1>
-              <div className=" border border-purple-700 rounded-2xl p-3 flex flex-col gap-4 max-w-sm">
-                <button 
-                  onClick={() => router.push('/vault-creation')}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl text-xl font-pixel tracking-wider"
-                >
-                  Proceed
-                </button>
+              
+              {/* Loading States */}
+              {isCheckingUser && (
+                <div className="text-yellow-400 font-pixel text-sm animate-pulse">
+                  Checking user account...
+                </div>
+              )}
+
+              {isCreatingUser && (
+                <div className="text-blue-400 font-pixel text-sm animate-pulse">
+                  Creating user account...
+                </div>
+              )}
+
+              <div className="border border-purple-700 rounded-2xl p-6 flex flex-col gap-4 max-w-sm">
+                {!isConnected ? (
+                  <div className="text-gray-400 font-pixel text-sm text-center">
+                    Connect your wallet to continue
+                  </div>
+                ) : (
+                  <>
+                    <button 
+                      onClick={handleProceedClick}
+                      disabled={!buttonsEnabled}
+                      className={`font-bold py-4 px-6 rounded-xl text-xl font-pixel tracking-wider transition-all ${
+                        buttonsEnabled 
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer transform hover:scale-105' 
+                          : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      {isCheckingUser || isCreatingUser ? 'Loading...' : 'Proceed to Vaults'}
+                    </button>
+                    
+                    <button 
+                      onClick={handleCreateVaultClick}
+                      disabled={!buttonsEnabled}
+                      className={`font-bold py-4 px-6 rounded-xl text-xl font-pixel tracking-wider transition-all ${
+                        buttonsEnabled 
+                          ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer transform hover:scale-105' 
+                          : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      {isCheckingUser || isCreatingUser ? 'Loading...' : 'Create Vault'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             {/* Right Side */}

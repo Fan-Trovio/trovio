@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAccount } from 'wagmi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
+import { db, Vault, User, Conversation } from '@/lib/database';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,41 +16,263 @@ export default function TrovioChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [vault, setVault] = useState<Vault | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [isLoadingVault, setIsLoadingVault] = useState(true);
+  const [isUpdatingCredits, setIsUpdatingCredits] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { address, isConnected } = useAccount();
+  
+  const vaultId = searchParams?.get('vaultId');
+
+  // Real-time polling for vault amount and user credits
+  useEffect(() => {
+    if (!isConnected || !address || !vaultId || !vault || !user) return;
+
+    const pollData = async () => {
+      try {
+        // Fetch updated vault data
+        const updatedVault = await db.getVaultById(parseInt(vaultId));
+        if (updatedVault) {
+          setVault(updatedVault);
+        }
+
+        // Fetch updated user data
+        const updatedUser = await db.getUserByWalletAddress(address);
+        if (updatedUser) {
+          setUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Error polling data:', error);
+      }
+    };
+
+    // Poll every second
+    const interval = setInterval(pollData, 1000);
+
+    return () => clearInterval(interval);
+  }, [isConnected, address, vaultId, vault?.id, user?.id]);
+
+  // Load conversation messages from database
+  const loadConversationMessages = async (conversationId: number) => {
+    try {
+      setIsLoadingMessages(true);
+      const dbMessages = await db.getMessagesByConversation(conversationId);
+      
+      const formattedMessages: Message[] = dbMessages.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content
+      }));
+      
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  // Create or find existing conversation
+  const initializeConversation = async (userId: number, vaultId: number) => {
+    try {
+      // Check if conversation already exists
+      const userConversations = await db.getConversationsByUser(userId);
+      const existingConversation = userConversations.find(conv => conv.vault_id === vaultId);
+      
+      if (existingConversation) {
+        setConversation(existingConversation);
+        await loadConversationMessages(existingConversation.id!);
+      } else {
+        // Create new conversation
+        const newConversation = await db.createConversation({
+          user_id: userId,
+          vault_id: vaultId
+        });
+        
+        if (newConversation) {
+          setConversation(newConversation);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing conversation:', error);
+    }
+  };
+
+  // Fetch vault and user data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!vaultId) {
+        router.push('/vaults');
+        return;
+      }
+      
+      if (!isConnected || !address) {
+        router.push('/');
+        return;
+      }
+      
+      try {
+        setIsLoadingVault(true);
+        
+        // Fetch vault data
+        const vaultData = await db.getVaultById(parseInt(vaultId));
+        if (!vaultData) {
+          router.push('/vaults');
+          return;
+        }
+        setVault(vaultData);
+        
+        // Fetch user data
+        const userData = await db.getUserByWalletAddress(address);
+        if (!userData) {
+          router.push('/');
+          return;
+        }
+        setUser(userData);
+        
+        // Initialize conversation
+        await initializeConversation(userData.id!, parseInt(vaultId));
+        
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        router.push('/vaults');
+      } finally {
+        setIsLoadingVault(false);
+      }
+    };
+
+    fetchData();
+  }, [vaultId, router, isConnected, address]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Save message to database
+  const saveMessageToDb = async (content: string, role: 'user' | 'assistant') => {
+    if (!conversation) return;
+    
+    try {
+      await db.createMessage({
+        conversation_id: conversation.id!,
+        content: content,
+        role: role
+      });
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !vaultId || !user || !address) return;
+    
+    // Check if user has credits and vault has amount
+    if ((user.credits || 0) === 0) {
+      alert('You have no credits remaining. Please get more credits to continue chatting.');
+      return;
+    }
+    
+    if ((vault?.available_prize || 0) === 0) {
+      alert('This vault has no available prize remaining.');
+      return;
+    }
+    
     const userMessage = input.trim();
     setInput('');
+    
+    // Add user message to UI immediately
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    
+    // Save user message to database
+    await saveMessageToDb(userMessage, 'user');
+    
     setIsLoading(true);
+    setIsUpdatingCredits(true);
+    
     try {
+      // Deduct 1 credit from user's account
+      const updatedUser = await db.updateUserCredits(address, (user.credits || 0) - 1);
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+      
+      // Send message to API
       const res = await fetch('/api/trovio-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, { role: 'user', content: userMessage }] })
+        body: JSON.stringify({ 
+          messages: [...messages, { role: 'user', content: userMessage }],
+          vaultId: vaultId
+        })
       });
+      
       const data = await res.json();
+      let assistantResponse = '';
+      
       if (data.content) {
+        assistantResponse = data.content;
         setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: "I was unable to produce a text response." }]);
+        assistantResponse = "I was unable to produce a text response.";
+        setMessages(prev => [...prev, { role: 'assistant', content: assistantResponse }]);
       }
+      
+      // Save assistant response to database
+      await saveMessageToDb(assistantResponse, 'assistant');
+      
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${(error as Error).message}` }]);
+      console.error('Error sending message:', error);
+      const errorMessage = `Sorry, I encountered an error: ${(error as Error).message}`;
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
+      
+      // Save error message to database
+      await saveMessageToDb(errorMessage, 'assistant');
+      
+      // Refund the credit on error
+      if (user && address) {
+        try {
+          const refundedUser = await db.updateUserCredits(address, (user.credits || 0));
+          if (refundedUser) {
+            setUser(refundedUser);
+          }
+        } catch (refundError) {
+          console.error('Error refunding credit:', refundError);
+        }
+      }
     } finally {
       setIsLoading(false);
+      setIsUpdatingCredits(false);
     }
   };
 
   // Helper: show ATTEMPT REJECTED if assistant message contains 'rejected' or similar
   const isAttemptRejected = (msg: string) =>
     /rejected|no moni|no money|not allowed|fail|denied|no for you/i.test(msg);
+
+  // Loading state
+  if (isLoadingVault) {
+    return (
+      <div className="min-h-screen w-full bg-black flex items-center justify-center">
+        <div className="text-purple-400 font-pixel animate-pulse">Loading vault...</div>
+      </div>
+    );
+  }
+
+  // Vault or user not found
+  if (!vault || !user) {
+    return (
+      <div className="min-h-screen w-full bg-black flex items-center justify-center">
+        <div className="text-red-400 font-pixel">Vault or user not found</div>
+      </div>
+    );
+  }
+
+  const canSendMessage = (user.credits || 0) > 0 && (vault.available_prize || 0) > 0 && !isLoading && !isUpdatingCredits;
 
   return (
     <div
@@ -115,47 +339,91 @@ export default function TrovioChatPage() {
       <div className="flex flex-row gap-10 items-stretch justify-center max-w-6xl w-full px-4 glassmorph-container">
         {/* Left Panel */}
         <div className="w-80 flex flex-col items-center py-12 px-6 cyberpunk-panel relative h-full min-h-[500px]">
-          <div className="text-3xl font-extrabold text-purple-400 font-pixel mb-2 tracking-widest text-center">
-            TROVIO VAULT
+          <div 
+            className="text-purple-400 text-lg font-pixel mb-2 cursor-pointer hover:text-purple-300 transition"
+            onClick={() => router.push('/vaults')}
+          >
+            ← Back to Vaults
           </div>
-          <div className="text-purple-200 text-lg font-pixel mb-8 text-center tracking-wide">
-            Wanna grab some prize ?
+          <div className="text-2xl font-extrabold text-purple-400 font-pixel mb-2 tracking-widest text-center">
+            {vault.name.toUpperCase()}
+          </div>
+          <div className="text-purple-200 text-sm font-pixel mb-8 text-center tracking-wide">
+            VAULT CHALLENGE
           </div>
           <div className="bg-black/80 border-2 border-purple-700 rounded-2xl p-6 mb-8 w-full flex flex-col items-center">
-            <div className="text-4xl font-bold text-purple-300 font-pixel mb-2">$1,000</div>
-            <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">In Price Pool</div>
+            <div className="text-3xl font-bold text-purple-300 font-pixel mb-2">{vault.available_prize || 0} CHZ</div>
+            <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">Available Prize</div>
+            
+            {/* Credits Display */}
+            <div className="w-full mb-4 p-3 bg-purple-900/40 rounded border border-purple-600">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-400 font-pixel mb-1">
+                  {user.credits || 0}
+                </div>
+                <div className="text-xs text-purple-300 font-pixel uppercase tracking-widest">
+                  Credits Remaining
+                </div>
+                <div className="text-xs text-gray-400 font-pixel mt-1">
+                  1 credit per message
+                </div>
+              </div>
+            </div>
+            
             <div className="flex flex-col gap-2 w-full">
-              <div className="flex justify-between text-purple-300 font-pixel text-sm">
-                <span>MESSAGE PRICE</span>
-                <span className="text-purple-100">$12</span>
-              </div>
-              <div className="flex justify-between text-purple-300 font-pixel text-sm">
-                <span>TOTAL ATTEMPTS</span>
-                <span className="text-purple-100">11</span>
+              <div className="flex justify-between text-purple-300 font-pixel text-xs">
+                <span>SPONSOR</span>
+                <span className="text-purple-100">
+                  {vault.vault_sponsor ? `${vault.vault_sponsor.slice(0, 6)}...${vault.vault_sponsor.slice(-4)}` : 'Unknown'}
+                </span>
               </div>
             </div>
-            {/* Progress bar */}
-            <div className="w-full mt-6">
-              <div className="flex justify-between text-xs text-purple-300 font-pixel mb-1">
-                <span>Progress</span>
-                <span>0%</span>
+            
+            {/* Low Credits Warning */}
+            {(user.credits || 0) <= 5 && (user.credits || 0) > 0 && (
+              <div className="w-full mt-4 p-2 bg-yellow-900/40 rounded border border-yellow-600">
+                <div className="text-xs text-yellow-400 font-pixel text-center">
+                  ⚠️ Low Credits!
+                </div>
               </div>
-              <div className="w-full h-2 bg-purple-900 rounded-full overflow-hidden">
-                <div className="h-full bg-purple-500" style={{ width: '0%' }}></div>
+            )}
+            
+            {/* No Credits Warning */}
+            {(user.credits || 0) === 0 && (
+              <div className="w-full mt-4 p-2 bg-red-900/40 rounded border border-red-600">
+                <div className="text-xs text-red-400 font-pixel text-center">
+                  ❌ No Credits Left!
+                </div>
               </div>
-            </div>
+            )}
+            
+            {/* No Prize Warning */}
+            {(vault.available_prize || 0) === 0 && (
+              <div className="w-full mt-4 p-2 bg-red-900/40 rounded border border-red-600">
+                <div className="text-xs text-red-400 font-pixel text-center">
+                  ❌ No Prize Remaining!
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {/* Chat Area */}
         <div className="flex-1 flex flex-col items-center justify-center mt-18">
           {/* Top Title */}
           <div className="w-full flex justify-center items-center mb-10">
-            <h1 className="text-4xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
-              CONVINCE TROVIO FOR UNLOCK VAULT
+            <h1 className="text-3xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
+              CONVINCE TROVIO TO UNLOCK VAULT
             </h1>
           </div>
           {/* Chat Window */}
           <div className="w-full cyberpunk-panel p-8 flex flex-col h-[320px] mb-4 mt-5 relative overflow-x-auto">
+            {/* Loading Messages */}
+            {isLoadingMessages && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                <div className="text-purple-400 font-pixel animate-pulse">Loading conversation...</div>
+              </div>
+            )}
+            
             {/* Centered Attempt Rejected and Avatar */}
             {messages.some(msg => msg.role === 'assistant' && isAttemptRejected(msg.content)) && (
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
@@ -210,19 +478,37 @@ export default function TrovioChatPage() {
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder="CONVINCE TROVIO"
+                placeholder={
+                  (user.credits || 0) === 0 ? "NO CREDITS REMAINING" :
+                  (vault.available_prize || 0) === 0 ? "NO PRIZE REMAINING" :
+                  "CONVINCE TROVIO"
+                }
                 className="flex-1 bg-transparent border-none outline-none text-white font-pixel text-xs px-6 py-2 placeholder-purple-300"
-                disabled={isLoading}
+                disabled={!canSendMessage}
                 style={{ minWidth: 0 }}
               />
               <button
                 type="submit"
-                className="ml-2 bg-gradient-to-r from-purple-500 to-purple-400 hover:from-purple-600 hover:to-purple-500 text-white font-extrabold px-4 py-2 rounded-lg font-pixel tracking-widest text-sm uppercase flex items-center gap-2 shadow-md transition disabled:opacity-50"
-                disabled={isLoading}
+                disabled={!canSendMessage}
+                className={`ml-2 font-extrabold px-4 py-2 rounded-lg font-pixel tracking-widest text-sm uppercase flex items-center gap-2 shadow-md transition ${
+                  canSendMessage 
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-400 hover:from-purple-600 hover:to-purple-500 text-white' 
+                    : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                }`}
               >
-                SEND <span className="text-lg pb-1">🌶️</span>
+                {isUpdatingCredits ? 'SENDING...' : 'SEND'} <span className="text-lg pb-1">🌶️</span>
               </button>
             </div>
+            {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
+              <div className="text-center mt-2">
+                <div className="text-xs text-red-400 font-pixel">
+                  {(user.credits || 0) === 0 
+                    ? "You need credits to send messages. Get more credits to continue."
+                    : "This vault has no available prize remaining."
+                  }
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -234,6 +520,7 @@ export default function TrovioChatPage() {
           backdrop-filter: blur(18px) saturate(140%);
           -webkit-backdrop-filter: blur(18px) saturate(140%);
           border: 1.5px solid rgba(168, 85, 247, 0.18);
+          border-radius: 5px;
           padding: 2.5rem 2rem;
         }
       `}</style>

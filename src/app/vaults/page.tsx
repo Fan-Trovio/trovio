@@ -1,22 +1,45 @@
 "use client";
 
-import { useVaults } from '../context/VaultsContext';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-
-interface Vault {
-    vaultAmount: string;
-    clubName: string;
-    xProfileUrl: string;
-    announcementTweetUrl: string;
-  }
+import { useAccount } from 'wagmi';
+import { db, Vault } from '@/lib/database';
 
 export default function VaultsPage() {
     const router = useRouter();
-    const { vaults } = useVaults();
+    const { isConnected } = useAccount();
+    const [vaults, setVaults] = useState<Vault[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleVaultClick = (index: number) => {
-        router.push(`/vaults/verification?id=${index}`);
+    // Fetch vaults from database
+    useEffect(() => {
+        const fetchVaults = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                const fetchedVaults = await db.getAllVaults();
+                setVaults(fetchedVaults);
+                console.log('Fetched vaults:', fetchedVaults);
+            } catch (err) {
+                console.error('Error fetching vaults:', err);
+                setError('Failed to load vaults');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchVaults();
+    }, []);
+
+    const handleVaultClick = (vaultId: number) => {
+        router.push(`/vaults/verification?id=${vaultId}`);
+    };
+
+    const formatSponsorAddress = (address: string) => {
+        if (!address) return 'Unknown';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
     };
 
     return (
@@ -47,27 +70,83 @@ export default function VaultsPage() {
                         </span>
                     </div>
                     <div className="flex items-center gap-8">
+                        <nav className="flex gap-8">
+                            <button 
+                                onClick={() => router.push('/vault-creation')}
+                                className="px-6 py-2 rounded-lg bg-green-600 text-white border-2 border-green-800 shadow-md font-pixel text-sm tracking-wider transition hover:bg-green-700 hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-400 active:scale-95"
+                            >
+                                Create Vault
+                            </button>
+                        </nav>
                         <ConnectButton chainStatus="none"/>
                     </div>
                 </header>
 
                 {/* Vaults Grid */}
-                <main className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 z-10">
+                <main className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl px-4 z-10 py-8">
                     <h1 className="text-4xl font-bold text-white mb-8 text-center font-pixel tracking-wider">Fan Vaults</h1>
-                    {vaults.length === 0 ? (
-                        <p className="text-gray-400 font-pixel">No vaults created yet.</p>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-                            {vaults.map((vault: Vault, index: number) => (
+                    
+                    {/* Loading State */}
+                    {isLoading && (
+                        <div className="text-yellow-400 font-pixel text-center animate-pulse">
+                            Loading vaults...
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                        <div className="text-red-400 font-pixel text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!isLoading && !error && vaults.length === 0 && (
+                        <div className="text-center">
+                            <p className="text-gray-400 font-pixel mb-4">No vaults created yet.</p>
+                            <button 
+                                onClick={() => router.push('/vault-creation')}
+                                className="px-6 py-3 rounded-lg bg-purple-600 text-white border-2 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-purple-700 hover:border-purple-500"
+                            >
+                                Create First Vault
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Vaults Grid */}
+                    {!isLoading && !error && vaults.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                            {vaults.map((vault) => (
                                 <div 
-                                    key={index} 
-                                    className="bg-gray-900 border-2 border-purple-700 rounded-2xl p-6 shadow-lg flex flex-col gap-4 cursor-pointer hover:border-purple-500 transition-all"
-                                    onClick={() => handleVaultClick(index)}
+                                    key={vault.id} 
+                                    className="bg-gray-900 border-2 border-purple-700 rounded-2xl p-6 shadow-lg flex flex-col gap-4 cursor-pointer hover:border-purple-500 transition-all hover:transform hover:scale-105"
+                                    onClick={() => handleVaultClick(vault.id!)}
                                 >
-                                    <h2 className="text-2xl font-bold text-purple-400 font-pixel">{vault.clubName}</h2>
-                                    <p className="text-lg text-white font-pixel">
-                                        Vault Amount: <span className="text-green-400">{vault.vaultAmount} CHZ</span>
-                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-bold text-purple-400 font-pixel">{vault.name}</h2>
+                                        <div className="text-xs text-gray-400 font-pixel">
+                                            {vault.blockchain?.toUpperCase() || 'CHILIZ'}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-white font-pixel">
+                                            Total Prize: <span className="text-green-400">{vault.total_prize} CHZ</span>
+                                        </p>
+                                        <p className="text-xs text-gray-400 font-pixel">
+                                            Sponsor: {formatSponsorAddress(vault.vault_sponsor || '')}
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(`/trovio-chat?vaultId=${vault.id}`);
+                                        }}
+                                        className="mt-4 w-full px-4 py-2 rounded-lg bg-blue-600 text-white border-2 border-blue-800 shadow-md font-pixel text-sm tracking-wider transition hover:bg-blue-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-95"
+                                    >
+                                        Chat
+                                    </button>
                                 </div>
                             ))}
                         </div>
