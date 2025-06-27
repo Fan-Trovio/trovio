@@ -12,6 +12,13 @@ export default function VaultCreation() {
   const { address, isConnected } = useAccount();
   const [showConfetti, setShowConfetti] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [eligibilityStatus, setEligibilityStatus] = useState<{
+    isEligible: boolean;
+    balance: number | null;
+    message: string;
+  } | null>(null);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [formData, setFormData] = useState({
     vaultAmount: '',
@@ -42,6 +49,46 @@ export default function VaultCreation() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Check fan token eligibility
+  const checkFanTokenEligibility = async (clubName: string) => {
+    if (!address || !clubName) return false;
+    
+    setIsCheckingEligibility(true);
+    setEligibilityStatus(null);
+    
+    try {
+      const response = await fetch(`/api/fan-tokens?address=${address}&club=${clubName}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch fan tokens');
+      }
+      
+      const data = await response.json();
+      const balance = data.balance || 0;
+      const isEligible = balance >= 100;
+      
+      setEligibilityStatus({
+        isEligible,
+        balance,
+        message: isEligible 
+          ? `Eligible! You have ${balance} ${clubName} tokens` 
+          : `Not eligible. You need at least 100 ${clubName} tokens. Current balance: ${balance}`
+      });
+      
+      return isEligible;
+    } catch (error) {
+      console.error('Error checking eligibility:', error);
+      setEligibilityStatus({
+        isEligible: false,
+        balance: null,
+        message: 'Failed to check eligibility. Please try again.'
+      });
+      return false;
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  };
+
   const handleCreateVault = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -50,7 +97,23 @@ export default function VaultCreation() {
       return;
     }
 
+    // Check fan token eligibility first
+    const isEligible = await checkFanTokenEligibility(formData.clubName);
+    
+    if (!isEligible) {
+      alert('You need at least 100 fan tokens to create a vault. Please get more tokens and try again.');
+      return;
+    }
+
+    // Wait 4 seconds after showing eligibility status
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    // Show overlay and start creating
+    setShowOverlay(true);
     setIsCreating(true);
+
+    // Show overlay for 4-5 seconds before creating vault
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     try {
       // Create vault in database
@@ -71,6 +134,7 @@ export default function VaultCreation() {
 
       if (createdVault) {
         console.log('Vault created successfully:', createdVault);
+        setShowOverlay(false);
         setShowConfetti(true);
         setTimeout(() => {
           setShowConfetti(false);
@@ -81,6 +145,7 @@ export default function VaultCreation() {
       }
     } catch (error) {
       console.error('Error creating vault:', error);
+      setShowOverlay(false);
       alert('Failed to create vault. Please try again.');
     } finally {
       setIsCreating(false);
@@ -100,6 +165,22 @@ export default function VaultCreation() {
   return (
     <>
       {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} />}
+      
+      {/* Overlay Screen */}
+      {showOverlay && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-900/95 border-2 border-purple-700 rounded-2xl p-8 max-w-md w-full shadow-lg backdrop-blur-md text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mx-auto mb-6"></div>
+            <h3 className="text-2xl font-bold text-purple-400 font-pixel mb-4">
+              Creating Your {formData.clubName} Vault
+            </h3>
+            <p className="text-gray-300 font-pixel text-sm">
+              Please wait while we set up your fan vault...
+            </p>
+          </div>
+        </div>
+      )}
+      
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         .font-pixel {
@@ -148,6 +229,14 @@ export default function VaultCreation() {
         <main className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 z-10">
           <div className="w-full glassmorph-vault border-2 border-purple-700 p-8 shadow-lg">
             <h1 className="text-3xl font-bold text-white mb-8 text-center font-pixel tracking-wider">Create a New Fan Vault</h1>
+            
+            {/* Eligibility Requirement Note */}
+            <div className="mb-6 p-4 bg-yellow-900/30 border-2 border-yellow-600 rounded-lg">
+              <p className="text-xs text-yellow-300 font-pixel">
+                ⚠️ Requirement: You need at least 100 fan tokens of the club you're creating a vault for to be eligible.
+              </p>
+            </div>
+            
             <form className="space-y-6" onSubmit={handleCreateVault}>
               <div>
                 <label htmlFor="vaultAmount" className="block text-sm font-medium text-gray-300 mb-2 font-pixel">Vault Amount</label>
@@ -212,17 +301,34 @@ export default function VaultCreation() {
                 />
                 <p className="text-xs text-gray-400 mt-1">This defines how the AI will interact with users in this vault</p>
               </div>
+
+              {/* Eligibility Status Display */}
+              {eligibilityStatus && (
+                <div className={`p-4 rounded-lg border-2 ${
+                  eligibilityStatus.isEligible 
+                    ? 'bg-green-900/30 border-green-600 text-green-300' 
+                    : 'bg-red-900/30 border-red-600 text-red-300'
+                }`}>
+                  <p className="text-sm font-pixel">{eligibilityStatus.message}</p>
+                  {eligibilityStatus.balance !== null && (
+                    <p className="text-xs mt-1 opacity-80">
+                      Balance: {eligibilityStatus.balance} {formData.clubName} tokens
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <button
                   type="submit"
-                  disabled={isCreating}
+                  disabled={isCreating || isCheckingEligibility}
                   className={`w-full mt-4 font-bold py-4 px-6 rounded-xl text-xl font-pixel tracking-wider transition-all ${
-                    isCreating 
+                    isCreating || isCheckingEligibility
                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
                       : 'bg-purple-600 hover:bg-purple-700 text-white hover:animate-pulse-slow'
                   }`}
                 >
-                  {isCreating ? 'Creating Vault...' : 'Create Vault'}
+                  {isCheckingEligibility ? 'Checking Eligibility...' : isCreating ? 'Creating Vault...' : 'Create Vault'}
                 </button>
               </div>
             </form>
