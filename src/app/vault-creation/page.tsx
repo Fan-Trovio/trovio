@@ -233,7 +233,7 @@ export default function VaultCreation() {
             {/* Eligibility Requirement Note */}
             <div className="mb-6 p-4 bg-yellow-900/30 border-2 border-yellow-600 rounded-lg">
               <p className="text-xs text-yellow-300 font-pixel">
-                ⚠️ Requirement: You need at least 100 fan tokens of the club you're creating a vault for to be eligible.
+                ⚠️ Requirement: You need at least 100 fan tokens of the club you're creating a vault for to be eligible, this will change after the mainnet launch.
               </p>
             </div>
             
