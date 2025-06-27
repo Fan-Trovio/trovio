@@ -22,6 +22,8 @@ export default function TrovioChatPage() {
   const [isLoadingVault, setIsLoadingVault] = useState(true);
   const [isUpdatingCredits, setIsUpdatingCredits] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [showPreloader, setShowPreloader] = useState(true);
+  const [preloaderStart, setPreloaderStart] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -56,6 +58,27 @@ export default function TrovioChatPage() {
 
     return () => clearInterval(interval);
   }, [isConnected, address, vaultId, vault?.id, user?.id]);
+
+  // Preloader effect: set start time when loading begins
+  useEffect(() => {
+    if (isLoadingVault) {
+      setPreloaderStart(Date.now());
+      setShowPreloader(true);
+    }
+  }, [isLoadingVault]);
+
+  // Hide preloader only after both loading is done and 2 seconds have passed
+  useEffect(() => {
+    if (!isLoadingVault && preloaderStart !== null) {
+      const elapsed = Date.now() - preloaderStart;
+      if (elapsed >= 2000) {
+        setShowPreloader(false);
+      } else {
+        const timeout = setTimeout(() => setShowPreloader(false), 2000 - elapsed);
+        return () => clearTimeout(timeout);
+      }
+    }
+  }, [isLoadingVault, preloaderStart]);
 
   // Load conversation messages from database
   const loadConversationMessages = async (conversationId: number) => {
@@ -254,11 +277,11 @@ export default function TrovioChatPage() {
   const isAttemptRejected = (msg: string) =>
     /rejected|no moni|no money|not allowed|fail|denied|no for you/i.test(msg);
 
-  // Loading state
-  if (isLoadingVault) {
+  // Loading state with GIF preloader
+  if (showPreloader) {
     return (
       <div className="min-h-screen w-full bg-black flex items-center justify-center">
-        <div className="text-purple-400 font-pixel animate-pulse">Loading vault...</div>
+        <img src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXluaWZlczA0MHYwbnhlZDU1cmUwc3VkZHM2b3prNmY5aG93Z2xrcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/DEtWVHQ1WNUbSZkfQU/giphy.gif" alt="Loading..." className="w-600 h-600" />
       </div>
     );
   }
@@ -338,68 +361,65 @@ export default function TrovioChatPage() {
       {/* Main Centered Container */}
       <div className="flex flex-row gap-10 items-stretch justify-center max-w-6xl w-full px-4 glassmorph-container">
         {/* Left Panel */}
-        <div className="w-80 flex flex-col items-center py-12 px-6 cyberpunk-panel relative h-full min-h-[500px]">
+        <div className="w-80 flex flex-col items-center py-10 px-6 cyberpunk-panel relative h-full min-h-[500px]">
           <div 
-            className="text-purple-400 text-lg font-pixel mb-2 cursor-pointer hover:text-purple-300 transition"
+            className="text-purple-400 text-base font-pixel mb-4 cursor-pointer hover:text-purple-300 transition self-start"
             onClick={() => router.push('/vaults')}
           >
             ← Back to Vaults
           </div>
-          <div className="text-2xl font-extrabold text-purple-400 font-pixel mb-2 tracking-widest text-center">
+          <div className="text-3xl font-extrabold text-pink-700 font-pixel mb-1 tracking-widest text-center drop-shadow">
             {vault.name.toUpperCase()}
           </div>
-          <div className="text-purple-200 text-sm font-pixel mb-8 text-center tracking-wide">
+          <div className="text-purple-200 text-xs font-pixel mb-6 text-center tracking-wide">
             VAULT CHALLENGE
           </div>
-          <div className="bg-black/80 border-2 border-purple-700 rounded-2xl p-6 mb-8 w-full flex flex-col items-center">
-            <div className="text-3xl font-bold text-purple-300 font-pixel mb-2">{vault.available_prize || 0} CHZ</div>
-            <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">Available Prize</div>
-            
+          <div className="bg-[#1a1126] border border-purple-700 rounded-xl p-5 mb-7 w-full flex flex-col items-center shadow-lg">
+            <div className="text-4xl font-extrabold text-purple-200 font-pixel mb-1 tracking-wide">
+              {vault.available_prize || 0} <span className="text-purple-400">CHZ</span>
+            </div>
+            <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">
+              Available Prize
+            </div>
+            <div className="w-full border-t border-purple-800 my-3"></div>
             {/* Credits Display */}
-            <div className="w-full mb-4 p-3 bg-purple-900/40 rounded border border-purple-600">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-400 font-pixel mb-1">
-                  {user.credits || 0}
-                </div>
-                <div className="text-xs text-purple-300 font-pixel uppercase tracking-widest">
-                  Credits Remaining
-                </div>
-                <div className="text-xs text-gray-400 font-pixel mt-1">
-                  1 credit per message
-                </div>
+            <div className="w-full mb-3 p-3 bg-[#2a1840] rounded-lg border border-purple-800 flex flex-col items-center">
+              <div className="text-2xl font-extrabold text-yellow-400 font-pixel mb-1">
+                {user.credits || 0}
+              </div>
+              <div className="text-xs text-purple-200 text-center font-pixel lowercase tracking-wider">
+                Credits Remaining
+              </div>
+              <div className="text-xs text-gray-400 font-pixel mt-1">
+                1 credit/message
               </div>
             </div>
-            
-            <div className="flex flex-col gap-2 w-full">
-              <div className="flex justify-between text-purple-300 font-pixel text-xs">
-                <span>SPONSOR</span>
-                <span className="text-purple-100">
-                  {vault.vault_sponsor ? `${vault.vault_sponsor.slice(0, 6)}...${vault.vault_sponsor.slice(-4)}` : 'Unknown'}
-                </span>
-              </div>
+            <div className="w-full border-t border-purple-800 my-3"></div>
+            {/* Sponsor */}
+            <span className="text-purple-300 font-pixel text-xs">SPONSOR</span>
+            <div className="flex justify-between items-center w-full px-1 py-2 bg-[#22143a] rounded-lg border border-purple-900 mb-2">
+              
+              <span className="text-purple-100 font-pixel text-xs">
+                {vault.vault_sponsor ? `${vault.vault_sponsor.slice(0, 10)}...${vault.vault_sponsor.slice(-4)}` : 'Unknown'}
+              </span>
             </div>
-            
-            {/* Low Credits Warning */}
+            {/* Warnings */}
             {(user.credits || 0) <= 5 && (user.credits || 0) > 0 && (
-              <div className="w-full mt-4 p-2 bg-yellow-900/40 rounded border border-yellow-600">
+              <div className="w-full mt-3 p-2 bg-yellow-900/40 rounded border border-yellow-600">
                 <div className="text-xs text-yellow-400 font-pixel text-center">
                   ⚠️ Low Credits!
                 </div>
               </div>
             )}
-            
-            {/* No Credits Warning */}
             {(user.credits || 0) === 0 && (
-              <div className="w-full mt-4 p-2 bg-red-900/40 rounded border border-red-600">
+              <div className="w-full mt-3 p-2 bg-red-900/40 rounded border border-red-600">
                 <div className="text-xs text-red-400 font-pixel text-center">
                   ❌ No Credits Left!
                 </div>
               </div>
             )}
-            
-            {/* No Prize Warning */}
             {(vault.available_prize || 0) === 0 && (
-              <div className="w-full mt-4 p-2 bg-red-900/40 rounded border border-red-600">
+              <div className="w-full mt-3 p-2 bg-red-900/40 rounded border border-red-600">
                 <div className="text-xs text-red-400 font-pixel text-center">
                   ❌ No Prize Remaining!
                 </div>
