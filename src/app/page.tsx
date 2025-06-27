@@ -36,7 +36,7 @@ export default function Home() {
             
             // Create new user
             const newUser = await db.createOrUpdateUser(address, {
-              credits: 100 // Give new users 100 starting credits
+              credits: 0 // Give new users 0 starting credits
             });
             
             if (newUser) {
