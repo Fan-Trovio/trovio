@@ -272,6 +272,29 @@ export default function VaultsPage() {
                 .font-pixel {
                     font-family: 'Press Start 2P', 'Fira Mono', monospace;
                 }
+                .cyberpunk-card {
+                    border-radius: 1px;
+                    border: 2.5px solid #a855f7;
+                    background: linear-gradient(135deg, rgba(40,20,60,0.85) 80%, #2d0a3a 100%);
+                    /* box-shadow removed */
+                    transition: border 0.2s, box-shadow 0.2s, transform 0.18s;
+                }
+                .cyberpunk-btn {
+                    background: linear-gradient(90deg, #a855f7 60%, #c084fc 100%);
+                    color: #fff;
+                    border: 2px solid #c084fc;
+                    font-family: 'Press Start 2P', 'Fira Mono', monospace;
+                    font-size: 1.1rem;
+                    letter-spacing: 0.08em;
+                    border-radius: 2px;
+                    /* box-shadow removed */
+                    transition: background 0.18s, border 0.18s, transform 0.12s;
+                }
+                .cyberpunk-btn:hover {
+                    background: #7c3aed;
+                    border: 2px solid #a855f7;
+                    transform: scale(1.03);
+                }
             `}</style>
             <div className="min-h-screen w-full bg-black flex flex-col items-center overflow-hidden relative font-sans">
                 {/* Tiny grid background */}
@@ -306,8 +329,8 @@ export default function VaultsPage() {
                 </header>
 
                 {/* Vaults Grid */}
-                <main className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl px-4 z-10 py-8">
-                    <h1 className="text-4xl font-bold text-white mb-8 text-center font-pixel tracking-wider">Fan Vaults</h1>
+                <main className="flex-1 flex flex-col items-center w-full max-w-6xl px-4 z-10 pt-4 mt-10">
+                    <h1 className="text-5xl text-pink-600 font-bold text-white mb-8 text-center font-pixel tracking-wider mb-10">Fan Vaults</h1>
                     
                     {/* Loading State */}
                     {isLoading && (
@@ -338,38 +361,37 @@ export default function VaultsPage() {
 
                     {/* Vaults Grid */}
                     {!isLoading && !error && vaults.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
                             {vaults.map((vault) => (
                                 <div 
                                     key={vault.id} 
-                                    className="bg-gray-900 border-2 border-purple-700 rounded-2xl p-6 shadow-lg flex flex-col gap-4 cursor-pointer hover:border-purple-500 transition-all hover:transform hover:scale-105"
+                                    className="cyberpunk-card p-7 shadow-xl flex flex-col gap-5 cursor-pointer relative group"
                                     onClick={() => handleVaultClick(vault.id!)}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <h2 className="text-xl font-bold text-purple-400 font-pixel">{vault.name}</h2>
-                                        <div className="text-xs text-gray-400 font-pixel">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h2 className="text-2xl font-bold text-purple-300 font-pixel tracking-widest drop-shadow-lg group-hover:text-purple-100 transition">{vault.name}</h2>
+                                        <div className="text-xs text-purple-400 font-pixel bg-purple-900/40 px-3 py-1 rounded-full border border-purple-700 shadow-sm">
                                             {vault.blockchain?.toUpperCase() || 'CHILIZ'}
                                         </div>
                                     </div>
-                                    
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-white font-pixel">
-                                            Total Prize: <span className="text-green-400">{vault.total_prize} CHZ</span>
+                                    <div className="space-y-2 mb-2">
+                                        <p className="text-base text-white font-pixel">
+                                            <span className="text-purple-400">Total Prize:</span> <span className="text-green-400 font-bold">{vault.total_prize} CHZ</span>
                                         </p>
-                                        <p className="text-xs text-gray-400 font-pixel">
-                                            Sponsor: {formatSponsorAddress(vault.vault_sponsor || '')}
+                                        <p className="text-xs text-purple-200 font-pixel">
+                                            <span className="text-purple-400">Sponsor:</span> {formatSponsorAddress(vault.vault_sponsor || '')}
                                         </p>
                                     </div>
-
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleChatClick(vault);
                                         }}
-                                        className="mt-4 w-full px-4 py-2 rounded-lg bg-blue-600 text-white border-2 border-blue-800 shadow-md font-pixel text-sm tracking-wider transition hover:bg-blue-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 active:scale-95"
+                                        className="mt-4 w-full px-4 py-3 cyberpunk-btn shadow-md font-pixel tracking-widest flex items-center justify-center gap-2"
                                     >
-                                        Chat
+                                        Chat <span className="text-lg pb-1">🌶️</span>
                                     </button>
+                                    <div className="absolute -inset-1.5 rounded-2xl pointer-events-none group-hover:shadow-[0_0_32px_8px_#a855f7aa] transition"></div>
                                 </div>
                             ))}
                         </div>
