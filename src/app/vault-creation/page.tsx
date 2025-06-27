@@ -91,7 +91,7 @@ export default function VaultCreation() {
 
         {/* Form Section */}
         <main className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 z-10">
-          <div className="w-full bg-gray-900 border-2 border-purple-700 rounded-2xl p-8 shadow-lg">
+          <div className="w-full glassmorph-vault border-2 border-purple-700 p-8 shadow-lg">
             <h1 className="text-3xl font-bold text-white mb-8 text-center font-pixel tracking-wider">Create a New Fan Vault</h1>
             <form className="space-y-6" onSubmit={handleCreateVault}>
               <div>
@@ -102,7 +102,7 @@ export default function VaultCreation() {
                   id="vaultAmount"
                   value={formData.vaultAmount}
                   onChange={handleInputChange}
-                  className="w-full bg-black border-2 border-purple-600 rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 font-pixel"
+                  className="w-full bg-black border-2 border-purple-600 text-md rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500"
                   placeholder="e.g. 1000 CHZ"
                 />
               </div>
@@ -114,7 +114,7 @@ export default function VaultCreation() {
                   id="clubName"
                   value={formData.clubName}
                   onChange={handleInputChange}
-                  className="w-full bg-black border-2 border-purple-600 rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 font-pixel"
+                  className="w-full bg-black border-2 border-purple-600 text-md rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 "
                   placeholder="e.g. PSG, JUV, NAP"
                 />
               </div>
@@ -126,7 +126,7 @@ export default function VaultCreation() {
                   id="xProfileUrl"
                   value={formData.xProfileUrl}
                   onChange={handleInputChange}
-                  className="w-full bg-black border-2 border-purple-600 rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 font-pixel"
+                  className="w-full bg-black border-2 border-purple-600 text-md rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 "
                   placeholder="https://x.com/yourprofile"
                 />
               </div>
@@ -138,7 +138,7 @@ export default function VaultCreation() {
                   id="announcementTweetUrl"
                   value={formData.announcementTweetUrl}
                   onChange={handleInputChange}
-                  className="w-full bg-black border-2 border-purple-600 rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 font-pixel"
+                  className="w-full bg-black border-2 border-purple-600 text-md rounded-md p-3 text-white focus:ring-purple-500 focus:border-purple-500 "
                   placeholder=""
                 />
               </div>
@@ -159,6 +159,16 @@ export default function VaultCreation() {
           TROVIO / ALL RIGHTS RESERVED @ 2025
         </footer>
       </div>
+      <style jsx>{`
+        .glassmorph-vault {
+          background: rgba(40, 20, 60, 0.55);
+          box-shadow: 0 4px 32px 0 rgba(80, 40, 120, 0.18);
+          backdrop-filter: blur(18px) saturate(140%);
+          -webkit-backdrop-filter: blur(18px) saturate(140%);
+          border: 1.5px solid rgba(168, 85, 247, 0.18);
+          border-radius: 5px;
+        }
+      `}</style>
     </>
   );
 }

@@ -43,9 +43,9 @@ export default function Home() {
             <span className="text-purple-400 text-3xl font-extrabold tracking-widest font-pixel">TROVIO</span>
           </div>
           <nav className="flex gap-12 text-lg font-bold text-gray-300">
-            <Link href={'/vault-creation'}>
+            <Link href={'/vaults'}>
             <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95">
-              Create Vault
+               Vault
             </button>
             </Link>
             <button className="px-8 py-1 rounded-lg bg-purple-600 text-white border-4 border-purple-800 shadow-md font-pixel tracking-wider transition hover:bg-white hover:text-purple-700 hover:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95">
@@ -67,7 +67,7 @@ export default function Home() {
               </h1>
               <div className=" border border-purple-700 rounded-2xl p-3 flex flex-col gap-4 max-w-sm">
                 <button 
-                  onClick={() => router.push('/vaults')}
+                  onClick={() => router.push('/vault-creation')}
                   className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl text-xl font-pixel tracking-wider"
                 >
                   Proceed
@@ -75,7 +75,7 @@ export default function Home() {
               </div>
             </div>
             {/* Right Side */}
-            <div className="relative flex items-center justify-center h-[600px]">
+            <div className="relative flex items-center justify-center mt-16 h-[600px]">
               <img
                 src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMTJ6aXowdGRudWo4bXluMHNkZHVienMxcjl5bzYzejRsZHhwb2VrbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/JYVuKkDFM16Xd0Su47/giphy.gif"
                 alt="Pixel art character GIF"
