@@ -313,9 +313,9 @@ function TaskPopup({ vault, onClose, onProceedToChat }: TaskPopupProps) {
                     </button>
                     <button
                         onClick={onProceedToChat}
-                        disabled={hasCheckedTokens && !isEligible}
+                        disabled={!bothTasksCompleted || (hasCheckedTokens && !isEligible)}
                         className={`flex-1 px-4 py-2 rounded-lg font-pixel text-sm transition ${
-                            hasCheckedTokens && !isEligible
+                            !bothTasksCompleted || (hasCheckedTokens && !isEligible)
                                 ? 'bg-gray-600 text-gray-400 cursor-not-allowed border-2 border-gray-800'
                                 : 'bg-purple-600 text-white border-2 border-purple-800 hover:bg-purple-700'
                         }`}
