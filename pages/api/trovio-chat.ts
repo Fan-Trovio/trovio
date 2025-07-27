@@ -13,6 +13,7 @@ import { db } from "../../src/lib/database";
 import { inputGuardrail } from "./utils/input_guardrails";
 import { getPrompt } from "./utils/prompt";
 import { detectAIContent } from "./utils/ai_content";
+import { concat } from "@langchain/core/utils/stream";
 
 const TOKEN_MAP: TokenMap = {
   PSG: { address: "0xb0Fa395a3386800658B9617F90e834E2CeC76Dd3", decimals: 18 },
@@ -38,10 +39,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  console.log("[TROVIO-STREAMING] Request received:", req.method, req.url);
+
   if (req.method === "GET") {
     return res
       .status(200)
-      .json({ message: "GET /api/trovio-chat is working!" });
+      .json({ message: "GET /api/trovio-chat-streaming is working!" });
   }
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST", "GET"]);
@@ -49,7 +52,9 @@ export default async function handler(
   }
 
   try {
-    console.log("[TROVIO-API] Received POST request to /api/trovio-chat");
+    console.log(
+      "[TROVIO-STREAMING] Received POST request to /api/trovio-chat-streaming"
+    );
     const { messages, vaultId } = req.body;
 
     // Validate input data
@@ -67,7 +72,7 @@ export default async function handler(
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i];
       if (!msg.role || !msg.content) {
-        console.error(`[TROVIO-API] Invalid message at index ${i}:`, msg);
+        console.error(`[TROVIO-STREAMING] Invalid message at index ${i}:`, msg);
         return res
           .status(400)
           .json({ error: `Invalid message format at index ${i}` });
@@ -85,7 +90,7 @@ export default async function handler(
       return res.status(404).json({ error: "Vault not found" });
     }
 
-    const rpcUrl = "https://spicy-rpc.chiliz.com";
+    const rpcUrl = "https://spicy-rpc.chiliz.com"; // Hardcoded
     const privateKey = process.env.PRIVATE_KEY || "";
     const openaiApiKey = process.env.OPENAI_API_KEY || "";
 
@@ -104,13 +109,14 @@ export default async function handler(
       });
       const testJson = await testRes.json();
     } catch (testErr) {
-      return res
-        .status(500)
-        .json({ error: "Failed to reach RPC URL", details: String(testErr) });
+      return res.status(500).json({
+        error: "Failed to reach RPC URL",
+        details: String(testErr),
+      });
     }
 
     if (!rpcUrl || !privateKey || !openaiApiKey) {
-      console.error("[TROVIO-API] Missing server configuration:", {
+      console.error("[TROVIO-STREAMING] Missing server configuration:", {
         rpcUrl,
         privateKey: !!privateKey,
         openaiApiKey: !!openaiApiKey,
@@ -122,7 +128,7 @@ export default async function handler(
     const agent = await ChilizAgent.create({ rpcUrl, privateKey });
     const walletAddress = agent.address;
 
-    // Execute chat with parallel guardrails
+    // Execute chat with parallel guardrails (input and main LLM call)
     const latestMessage = messages[messages.length - 1];
     if (!latestMessage || latestMessage.role !== "user") {
       return res
@@ -130,7 +136,7 @@ export default async function handler(
         .json({ error: "Latest message must be from user" });
     }
 
-    const response = await executeWithParallelGuardrails(
+    const chatResponseGenerator = executeWithParallelGuardrails(
       latestMessage.content,
       messages,
       vault,
@@ -138,69 +144,116 @@ export default async function handler(
       agent
     );
 
-    // Return the complete response
-    return res.status(200).json({
-      success: true,
-      response: response,
-    });
+    // Set up streaming headers exactly like the article
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Content-Encoding", "none");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+
+    try {
+      let chunkCount = 0;
+      for await (const chunk of chatResponseGenerator) {
+        chunkCount++;
+
+        // Write the chunk directly
+        res.write(chunk);
+
+        // Force immediate transmission
+        if ("flush" in res && typeof res.flush === "function") {
+          res.flush();
+        }
+      }
+    } catch (error: any) {
+      console.error("[TROVIO-STREAMING] Error during streaming:", error);
+      res.write(`\n\nError: ${error.message || "Unknown error"}`);
+    }
+
+    res.end();
   } catch (err: any) {
-    console.error("[TROVIO-API] Error:", err);
     return res.status(500).json({ error: String(err) });
   }
 }
 
-// Parallel execution function (now returns complete response instead of streaming)
-async function executeWithParallelGuardrails(
+// Parallel execution function implementing OpenAI cookbook pattern
+async function* executeWithParallelGuardrails(
   userInput: string,
   messages: any[],
   vault: any,
   walletAddress: string,
   agent: any
-): Promise<string> {
-  // Check the guardrail
+): AsyncGenerator<string, void, unknown> {
+  // First, check if content is AI-generated
+  // try {
+  //   const aiDetectionResult = await detectAIContent(userInput);
+
+  //   // If score <= 40, it's likely AI-generated
+  //   if (aiDetectionResult.score <= 40) {
+  //     yield `🤖 AI Content Detected! I can tell this message might be AI-generated. As the ${vault.name} vault guardian, I only engage with authentic human fans.`;
+  //     return;
+  //   }
+  // } catch (error) {
+  //   console.error("AI detection failed:", error);
+  // }
+
+  // Then, check the guardrail
   const guardrailResult = await inputGuardrail(userInput, vault.name);
   console.log(`[GUARDRAIL] Result for vault ${vault.name}: ${guardrailResult}`);
 
   // If guardrail blocks, return appropriate message immediately
   if (guardrailResult !== "ALLOW") {
     console.log(`[GUARDRAIL] Blocking request with result: ${guardrailResult}`);
-
+    // Return different messages based on block type
     if (guardrailResult === "BLOCK_TOKEN") {
-      return `I can't help with direct token requests or financial demands. To earn rewards from the ${vault.name} vault, demonstrate genuine fan engagement and knowledge. Try:\n\n• Discussing ${vault.name} team history and player stats\n• Sharing your thoughts on recent ${vault.name} games\n• Asking questions about ${vault.name} tactics and strategy\n• Contributing valuable insights about ${vault.name}\n\nShow your passion and expertise about ${vault.name} to earn CHZ through meaningful interaction!`;
+      yield `I can't help with direct token requests or financial demands. To earn rewards from the ${vault.name} vault, demonstrate genuine fan engagement and knowledge. Try:\n\n• Discussing ${vault.name} team history and player stats\n• Sharing your thoughts on recent ${vault.name} games\n• Asking questions about ${vault.name} tactics and strategy\n• Contributing valuable insights about ${vault.name}\n\nShow your passion and expertise about ${vault.name} to earn CHZ through meaningful interaction!`;
+      return;
     } else if (guardrailResult === "BLOCK_TEAM") {
-      return `I can only discuss ${vault.name} in this vault. I can't talk about other teams, leagues, or rival clubs. This is a dedicated ${vault.name} fan space. Try asking me about:\n\n• ${vault.name} players and their performances\n• ${vault.name} match history and memorable moments\n• ${vault.name} tactics and team strategy\n• ${vault.name} club culture and traditions\n\nLet's focus on what makes ${vault.name} special!`;
+      yield `I can only discuss ${vault.name} in this vault. I can't talk about other teams, leagues, or rival clubs. This is a dedicated ${vault.name} fan space. Try asking me about:\n\n• ${vault.name} players and their performances\n• ${vault.name} match history and memorable moments\n• ${vault.name} tactics and team strategy\n• ${vault.name} club culture and traditions\n\nLet's focus on what makes ${vault.name} special!`;
+      return;
     }
   }
 
   console.log("[GUARDRAIL] Request allowed, proceeding to main chat");
 
   // If guardrail allows, proceed with main chat
-  const response = await getMainChatResponse(
+  const chatGenerator = getMainChatResponse(
     messages,
     vault,
     walletAddress,
     agent,
+    new AbortController().signal,
     userInput
   );
 
-  return response;
+  // Yield chunks from the generator as they come
+  let generatorChunkCount = 0;
+  for await (const chunk of chatGenerator) {
+    generatorChunkCount++;
+
+    yield chunk;
+  }
 }
 
-// Main chat response function (now returns complete response instead of streaming)
-async function getMainChatResponse(
+// Main chat response function (extracted from original logic)
+async function* getMainChatResponse(
   messageHistory: any[],
   vault: any,
   walletAddress: string,
   agent: any,
+  abortSignal: AbortSignal,
   latestMessage: string
-): Promise<string> {
+): AsyncGenerator<string, void, unknown> {
   console.log("[CHAT] Starting main chat response generation...");
+
+  // Check for abort early
+  if (abortSignal.aborted) {
+    throw new Error("Chat request was aborted");
+  }
 
   const llm = new ChatGoogleGenerativeAI({
     model: "gemini-2.0-flash-001",
     temperature: 0.3,
     apiKey: process.env.GOOGLE_API_KEY,
-    streaming: false, // Disable streaming
+    streaming: true,
   });
 
   const recentMessages = messageHistory.slice(-5);
@@ -215,7 +268,7 @@ async function getMainChatResponse(
   const tools = getChilizTools(agent, TOKEN_MAP);
   const modelWithTools = llm.bindTools(tools);
 
-  // Create message array with system prompt and latest user message
+  // Create simple message array with system prompt and latest user message
   const messages: BaseMessage[] = [
     new SystemMessage(systemPrompt),
     new HumanMessage({
@@ -224,18 +277,44 @@ async function getMainChatResponse(
     }),
   ];
 
-  console.log("[LANGCHAIN] Invoking LangChain model...");
+  // Check for abort before main LLM call
+  if (abortSignal.aborted) {
+    throw new Error("Chat request was aborted");
+  }
 
-  // Get the initial response
-  let response = await modelWithTools.invoke(messages);
-  console.log("[LANGCHAIN] Initial response received");
+  let response = await modelWithTools.stream(messages);
+  let gathered = undefined;
+
+  // Stream the initial response chunks
+  let langchainChunkCount = 0;
+  for await (const chunk of response) {
+    if (abortSignal.aborted) {
+      throw new Error("Chat request was aborted");
+    }
+    gathered = gathered !== undefined ? concat(gathered, chunk) : chunk;
+    langchainChunkCount++;
+
+    // Yield content chunks as they come
+    if (chunk.content && typeof chunk.content === "string") {
+      yield chunk.content;
+    }
+  }
+
+  console.log(
+    `[LANGCHAIN] Tool calls detected:`,
+    gathered?.tool_calls?.length || 0
+  );
 
   // Handle tool calls if present
-  if (response.tool_calls && response.tool_calls.length > 0) {
-    console.log("[CHAT] Executing tools:", response.tool_calls);
+  if (gathered && gathered.tool_calls && gathered.tool_calls.length > 0) {
+    // Check for abort before tool execution
+    if (abortSignal.aborted) {
+      throw new Error("Chat request was aborted");
+    }
 
+    console.log("[CHAT] Executing tools:", gathered.tool_calls);
     const toolMessages = await Promise.all(
-      response.tool_calls.map(async (toolCall: any) => {
+      gathered.tool_calls.map(async (toolCall: any) => {
         const tool = tools.find((t) => t.name === toolCall.name);
         if (!tool) {
           return new ToolMessage({
@@ -266,21 +345,33 @@ async function getMainChatResponse(
     const messagesWithTools: BaseMessage[] = [
       ...messages,
       new AIMessage(
-        typeof response?.content === "string" ? response.content : ""
+        typeof gathered?.content === "string" ? gathered.content : ""
       ),
       ...toolMessages,
     ];
 
-    // Get the final response after tool execution
-    console.log("[LANGCHAIN] Getting final response after tool execution...");
-    const finalResponse = await modelWithTools.invoke(messagesWithTools);
+    // Check for abort before second LLM call
+    if (abortSignal.aborted) {
+      throw new Error("Chat request was aborted");
+    }
 
-    console.log("[CHAT] Main chat response completed");
-    return typeof finalResponse.content === "string"
-      ? finalResponse.content
-      : "";
+    // Stream the final response after tool execution
+    console.log(
+      "[LANGCHAIN] Starting final response stream after tool execution..."
+    );
+    const finalResponse = await modelWithTools.stream(messagesWithTools);
+    let finalChunkCount = 0;
+    for await (const chunk of finalResponse) {
+      if (abortSignal.aborted) {
+        throw new Error("Chat request was aborted");
+      }
+      finalChunkCount++;
+      // Yield final response chunks
+      if (chunk.content && typeof chunk.content === "string") {
+        yield chunk.content;
+      }
+    }
   }
 
   console.log("[CHAT] Main chat response completed");
-  return typeof response.content === "string" ? response.content : "";
 }

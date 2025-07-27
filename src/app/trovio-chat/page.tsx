@@ -1,23 +1,28 @@
 "use client";
 
-import { Suspense, useState, useRef, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { db, Vault, User, Conversation } from '@/lib/database';
-import dynamic from 'next/dynamic';
+import { Suspense, useState, useRef, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import {
+  useAccount,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { parseEther } from "viem";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { db, Vault, User, Conversation } from "@/lib/database";
+import dynamic from "next/dynamic";
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
 function TrovioChat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [incomingMessage, setIncomingMessage] = useState("");
   const [vault, setVault] = useState<Vault | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -31,26 +36,30 @@ function TrovioChat() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  
-  const { data: hash, sendTransaction, error: sendError } = useSendTransaction();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
-  
-  const vaultId = searchParams?.get('vaultId');
+
+  const {
+    data: hash,
+    sendTransaction,
+    error: sendError,
+  } = useSendTransaction();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  const vaultId = searchParams?.get("vaultId");
 
   const handleBuyCredits = async () => {
     if (!address || isBuyingCredits) return;
-    
+
     try {
       setIsBuyingCredits(true);
       sendTransaction({
-        to: '0xA879eB55AaD088A8a19E06610129d4CDb4f2c99b',
-        value: parseEther('5'),
+        to: "0xA879eB55AaD088A8a19E06610129d4CDb4f2c99b",
+        value: parseEther("5"),
       });
-      
     } catch (error) {
-      console.error('Error initiating transaction:', error);
+      console.error("Error initiating transaction:", error);
       setIsBuyingCredits(false);
     }
   };
@@ -59,26 +68,29 @@ function TrovioChat() {
     if (isConfirmed && isBuyingCredits && address && user) {
       const awardCredits = async () => {
         try {
-          const updatedUser = await db.updateUserCredits(address, (user.credits || 0) + 5);
+          const updatedUser = await db.updateUserCredits(
+            address,
+            (user.credits || 0) + 5
+          );
           if (updatedUser) {
             setUser(updatedUser);
           }
-          console.log('Transaction successful, 5 credits awarded');
+          console.log("Transaction successful, 5 credits awarded");
         } catch (error) {
-          console.error('Error awarding credits:', error);
+          console.error("Error awarding credits:", error);
         } finally {
           setIsBuyingCredits(false);
         }
       };
-      
+
       awardCredits();
     }
   }, [isConfirmed, isBuyingCredits, address, user]);
 
   useEffect(() => {
     if (sendError && isBuyingCredits) {
-      console.error('Transaction failed:', sendError);
-      alert('Transaction failed. Please try again.');
+      console.error("Transaction failed:", sendError);
+      alert("Transaction failed. Please try again.");
       setIsBuyingCredits(false);
     }
   }, [sendError, isBuyingCredits]);
@@ -98,7 +110,7 @@ function TrovioChat() {
           setUser(updatedUser);
         }
       } catch (error) {
-        console.error('Error polling data:', error);
+        console.error("Error polling data:", error);
       }
     };
 
@@ -120,7 +132,10 @@ function TrovioChat() {
       if (elapsed >= 2000) {
         setShowPreloader(false);
       } else {
-        const timeout = setTimeout(() => setShowPreloader(false), 2000 - elapsed);
+        const timeout = setTimeout(
+          () => setShowPreloader(false),
+          2000 - elapsed
+        );
         return () => clearTimeout(timeout);
       }
     }
@@ -130,15 +145,20 @@ function TrovioChat() {
     try {
       setIsLoadingMessages(true);
       const dbMessages = await db.getMessagesByConversation(conversationId);
-      
-      const formattedMessages: Message[] = dbMessages.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content
+
+      const formattedMessages: Message[] = dbMessages.map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
       }));
-      
+
       setMessages(formattedMessages);
+
+      // Immediately scroll to bottom when messages are loaded
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      }, 100);
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error("Error loading messages:", error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -147,59 +167,60 @@ function TrovioChat() {
   const initializeConversation = async (userId: number, vaultId: number) => {
     try {
       const userConversations = await db.getConversationsByUser(userId);
-      const existingConversation = userConversations.find(conv => conv.vault_id === vaultId);
-      
+      const existingConversation = userConversations.find(
+        (conv) => conv.vault_id === vaultId
+      );
+
       if (existingConversation) {
         setConversation(existingConversation);
         await loadConversationMessages(existingConversation.id!);
       } else {
         const newConversation = await db.createConversation({
           user_id: userId,
-          vault_id: vaultId
+          vault_id: vaultId,
         });
-        
+
         if (newConversation) {
           setConversation(newConversation);
         }
       }
     } catch (error) {
-      console.error('Error initializing conversation:', error);
+      console.error("Error initializing conversation:", error);
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
       if (!vaultId) {
-        router.push('/vaults');
+        router.push("/vaults");
         return;
       }
-      
+
       if (!isConnected || !address) {
-        router.push('/');
+        router.push("/");
         return;
       }
-      
+
       try {
         setIsLoadingVault(true);
         const vaultData = await db.getVaultById(parseInt(vaultId));
         if (!vaultData) {
-          router.push('/vaults');
+          router.push("/vaults");
           return;
         }
         setVault(vaultData);
-        
+
         const userData = await db.getUserByWalletAddress(address);
         if (!userData) {
-          router.push('/');
+          router.push("/");
           return;
         }
         setUser(userData);
-        
+
         await initializeConversation(userData.id!, parseInt(vaultId));
-        
       } catch (error) {
-        console.error('Error fetching data:', error);
-        router.push('/vaults');
+        console.error("Error fetching data:", error);
+        router.push("/vaults");
       } finally {
         setIsLoadingVault(false);
       }
@@ -208,76 +229,125 @@ function TrovioChat() {
     fetchData();
   }, [vaultId, router, isConnected, address]);
 
+  // Auto-scroll to bottom when chat first loads
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0 && !isLoadingMessages) {
+      // Use requestAnimationFrame to ensure DOM is updated before scrolling
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+    }
+  }, [isLoadingMessages]);
 
-  const saveMessageToDb = async (content: string, role: 'user' | 'assistant') => {
+  // Auto-scroll when new messages arrive (smooth for user interactions)
+  useEffect(() => {
+    if (!isLoadingMessages) {
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }, [messages, incomingMessage]);
+
+  const saveMessageToDb = async (
+    content: string,
+    role: "user" | "assistant"
+  ) => {
     if (!conversation) return;
-    
+
     try {
       await db.createMessage({
         conversation_id: conversation.id!,
         content: content,
-        role: role
+        role: role,
       });
     } catch (error) {
-      console.error('Error saving message:', error);
+      console.error("Error saving message:", error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || !canSendMessage) return;
-    
-    const newUserMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, newUserMessage]);
-    setInput('');
-    
-    await saveMessageToDb(newUserMessage.content, 'user');
+
+    const newUserMessage: Message = { role: "user", content: input };
+    setMessages((prev) => [...prev, newUserMessage]);
+    setInput("");
+
+    await saveMessageToDb(newUserMessage.content, "user");
 
     setIsLoading(true);
     setIsUpdatingCredits(true);
-    
+
     try {
-      const updatedUser = await db.updateUserCredits(address!, (user!.credits || 0) - 1);
+      const updatedUser = await db.updateUserCredits(
+        address!,
+        (user!.credits || 0) - 1
+      );
       if (updatedUser) {
         setUser(updatedUser);
       } else {
-        throw new Error('Failed to update credits');
+        throw new Error("Failed to update credits");
       }
-      
-      const response = await fetch('/api/trovio-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+
+      const response = await fetch("/api/trovio-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           messages: [...messages, newUserMessage],
-          vaultId: vaultId
+          vaultId: vaultId,
         }),
       });
 
       if (!response.ok) throw new Error(await response.text());
 
-      const data = await response.json();
-      
-      const newAssistantMessage: Message = { role: 'assistant', content: data.response };
-      setMessages(prev => [...prev, newAssistantMessage]);
+      // Initialize streaming
+      setIncomingMessage("");
 
-      await saveMessageToDb(newAssistantMessage.content, 'assistant');
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
 
+      let content = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        content += value;
+        setIncomingMessage(content);
+
+        // Auto-scroll during streaming
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
+
+      const newAssistantMessage: Message = {
+        role: "assistant",
+        content: content,
+      };
+      setMessages((prev) => [...prev, newAssistantMessage]);
+      setIncomingMessage(""); // Clear the incoming message
+
+      await saveMessageToDb(content, "assistant");
     } catch (error: any) {
-      console.error('API Error:', error);
-      const errorMessage: Message = { role: 'assistant', content: `Error: ${error.message}` };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error("API Error:", error);
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `Error: ${error.message}`,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
       setIsUpdatingCredits(false);
     }
   };
 
-  const canSendMessage = !isLoading && 
-                         (user?.credits ?? 0) > 0 && 
-                         (vault?.available_prize ?? 0) > 0;
+  const canSendMessage =
+    !isLoading && (user?.credits ?? 0) > 0 && (vault?.available_prize ?? 0) > 0;
 
   const isAttemptRejected = (msg: string) =>
     /rejected|no moni|no money|not allowed|fail|denied|no for you/i.test(msg);
@@ -287,9 +357,8 @@ function TrovioChat() {
       <div
         className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
         style={{
-          backgroundImage:
-            `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-          backgroundSize: '12px 12px',
+          backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
+          backgroundSize: "12px 12px",
         }}
       >
         <div className="text-purple-400 text-2xl font-pixel animate-pulse">
@@ -304,9 +373,8 @@ function TrovioChat() {
       <div
         className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
         style={{
-          backgroundImage:
-            `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-          backgroundSize: '12px 12px',
+          backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
+          backgroundSize: "12px 12px",
         }}
       >
         <div className="text-red-400 text-2xl font-pixel">
@@ -320,15 +388,14 @@ function TrovioChat() {
     <div
       className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
       style={{
-        backgroundImage:
-          `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-        backgroundSize: '12px 12px',
+        backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
+        backgroundSize: "12px 12px",
       }}
     >
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
         .font-pixel {
-          font-family: 'Press Start 2P', 'Fira Mono', monospace;
+          font-family: "Press Start 2P", "Fira Mono", monospace;
         }
         .cyberpunk-panel {
           border-radius: 18px;
@@ -368,7 +435,7 @@ function TrovioChat() {
           color: #fff;
           border: 3px solid #c084fc;
           font-size: 1.3rem;
-          font-family: 'Press Start 2P', 'Fira Mono', monospace;
+          font-family: "Press Start 2P", "Fira Mono", monospace;
           border-radius: 12px;
           padding: 0.7rem 2.5rem;
           margin-top: 0.5rem;
@@ -379,9 +446,9 @@ function TrovioChat() {
       `}</style>
       <div className="flex flex-row gap-10 items-stretch justify-center max-w-6xl w-full px-4 glassmorph-container">
         <div className="w-80 flex flex-col items-center py-10 px-6 cyberpunk-panel relative h-full min-h-[500px]">
-          <div 
+          <div
             className="text-purple-400 text-base font-pixel mb-4 cursor-pointer hover:text-purple-300 transition self-start"
-            onClick={() => router.push('/vaults')}
+            onClick={() => router.push("/vaults")}
           >
             ← Back to Vaults
           </div>
@@ -393,7 +460,8 @@ function TrovioChat() {
           </div>
           <div className="bg-[#1a1126] border border-purple-700 rounded-xl p-5 mb-7 w-full flex flex-col items-center shadow-lg">
             <div className="text-4xl font-extrabold text-purple-200 font-pixel mb-1 tracking-wide">
-              {vault.available_prize || 0} <span className="text-purple-400">CHZ</span>
+              {vault.available_prize || 0}{" "}
+              <span className="text-purple-400">CHZ</span>
             </div>
             <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">
               Available Prize
@@ -416,11 +484,15 @@ function TrovioChat() {
               disabled={isBuyingCredits || isConfirming}
               className={`w-full px-4 py-3 rounded-lg font-pixel text-xs uppercase tracking-wider transition-all ${
                 isBuyingCredits || isConfirming
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
-                  : 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white transform hover:scale-105 shadow-lg border-2 border-green-800'
+                  ? "bg-gray-600 text-gray-400 cursor-not-allowed opacity-50"
+                  : "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white transform hover:scale-105 shadow-lg border-2 border-green-800"
               }`}
             >
-              {isConfirming ? '⏳ Confirming...' : isBuyingCredits ? '💳 Processing...' : '💰 Buy 5 Credits (5 CHZ)'}
+              {isConfirming
+                ? "⏳ Confirming..."
+                : isBuyingCredits
+                ? "💳 Processing..."
+                : "💰 Buy 5 Credits (5 CHZ)"}
             </button>
             {(user.credits || 0) <= 5 && (user.credits || 0) > 0 && (
               <div className="w-full mt-3 p-2 bg-yellow-900/40 rounded border border-yellow-600">
@@ -454,63 +526,164 @@ function TrovioChat() {
           <div className="w-full cyberpunk-panel p-8 flex flex-col h-[320px] mb-4 mt-5 relative overflow-x-auto">
             {isLoadingMessages && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-                <div className="text-purple-400 font-pixel animate-pulse">Loading conversation...</div>
+                <div className="text-purple-400 font-pixel animate-pulse">
+                  Loading conversation...
+                </div>
               </div>
             )}
-            
-            {messages.some(msg => msg.role === 'assistant' && isAttemptRejected(msg.content)) && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
-              </div>
+
+            {messages.some(
+              (msg) =>
+                msg.role === "assistant" && isAttemptRejected(msg.content)
+            ) && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10"></div>
             )}
             <div className="flex-1 flex flex-col justify-end">
               {messages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`flex items-end gap-4 my-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex items-end gap-4 my-2 ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
                 >
-                  {msg.role === 'assistant' && (
+                  {msg.role === "assistant" && (
                     <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
-                      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="#181022" stroke="#a855f7" strokeWidth="3"/>
-                        <ellipse cx="13" cy="18" rx="3" ry="4" fill="#a855f7"/>
-                        <ellipse cx="27" cy="18" rx="3" ry="4" fill="#a855f7"/>
-                        <rect x="13" y="28" width="14" height="3" rx="1.5" fill="#a855f7"/>
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 40 40"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="20"
+                          cy="20"
+                          r="18"
+                          fill="#181022"
+                          stroke="#a855f7"
+                          strokeWidth="3"
+                        />
+                        <ellipse cx="13" cy="18" rx="3" ry="4" fill="#a855f7" />
+                        <ellipse cx="27" cy="18" rx="3" ry="4" fill="#a855f7" />
+                        <rect
+                          x="13"
+                          y="28"
+                          width="14"
+                          height="3"
+                          rx="1.5"
+                          fill="#a855f7"
+                        />
                       </svg>
                     </span>
                   )}
                   <div
-                    className={`p-2 rounded-lg font-pixel text-xs ${msg.role === 'user' ? 'cyberpunk-bubble-user' : 'cyberpunk-bubble'}  items-center max-w-[90%] break-words inline-block`}
+                    className={`p-2 rounded-lg font-pixel text-xs ${
+                      msg.role === "user"
+                        ? "cyberpunk-bubble-user"
+                        : "cyberpunk-bubble"
+                    }  items-center max-w-[90%] break-words inline-block`}
                     style={{
-                      marginLeft: msg.role === 'assistant' ? 0 : 'auto',
-                      marginRight: msg.role === 'user' ? 0 : 'auto',
+                      marginLeft: msg.role === "assistant" ? 0 : "auto",
+                      marginRight: msg.role === "user" ? 0 : "auto",
                     }}
                   >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
-                  {msg.role === 'user' && (
+                  {msg.role === "user" && (
                     <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
-                      <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="#232136" stroke="#c084fc" strokeWidth="3"/>
-                        <ellipse cx="20" cy="16" rx="6" ry="7" fill="#c084fc"/>
-                        <rect x="10" y="27" width="20" height="6" rx="3" fill="#a855f7"/>
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 40 40"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="20"
+                          cy="20"
+                          r="18"
+                          fill="#232136"
+                          stroke="#c084fc"
+                          strokeWidth="3"
+                        />
+                        <ellipse cx="20" cy="16" rx="6" ry="7" fill="#c084fc" />
+                        <rect
+                          x="10"
+                          y="27"
+                          width="20"
+                          height="6"
+                          rx="3"
+                          fill="#a855f7"
+                        />
                       </svg>
                     </span>
                   )}
                 </div>
               ))}
+              {incomingMessage && (
+                <div className="flex items-end gap-4 my-2 justify-start">
+                  <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 40 40"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        fill="#181022"
+                        stroke="#a855f7"
+                        strokeWidth="3"
+                      />
+                      <ellipse cx="13" cy="18" rx="3" ry="4" fill="#a855f7" />
+                      <ellipse cx="27" cy="18" rx="3" ry="4" fill="#a855f7" />
+                      <rect
+                        x="13"
+                        y="28"
+                        width="14"
+                        height="3"
+                        rx="1.5"
+                        fill="#a855f7"
+                      />
+                    </svg>
+                  </span>
+                  <div
+                    className="p-2 rounded-lg font-pixel text-xs cyberpunk-bubble items-center max-w-[90%] break-words inline-block"
+                    style={{
+                      marginLeft: 0,
+                      marginRight: "auto",
+                    }}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {incomingMessage}
+                    </ReactMarkdown>
+                    <span className="animate-pulse">▊</span>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
           <form onSubmit={handleSubmit} className="w-full mt-2">
-            <div className="flex items-center w-full bg-transparent rounded-2xl border border-purple-500/60 backdrop-blur-md" style={{ background: 'rgba(60, 20, 80, 0.35)' }}>
+            <div
+              className="flex items-center w-full bg-transparent rounded-2xl border border-purple-500/60 backdrop-blur-md"
+              style={{ background: "rgba(60, 20, 80, 0.35)" }}
+            >
               <input
                 type="text"
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder={
-                  (user.credits || 0) === 0 ? "NO CREDITS REMAINING" :
-                  (vault.available_prize || 0) === 0 ? "NO PRIZE REMAINING" :
-                  "CONVINCE TROVIO"
+                  (user.credits || 0) === 0
+                    ? "NO CREDITS REMAINING"
+                    : (vault.available_prize || 0) === 0
+                    ? "NO PRIZE REMAINING"
+                    : "CONVINCE TROVIO"
                 }
                 className="flex-1 bg-transparent border-none outline-none text-white font-pixel text-xs px-6 py-2 placeholder-purple-300"
                 disabled={!canSendMessage}
@@ -520,21 +693,22 @@ function TrovioChat() {
                 type="submit"
                 disabled={!canSendMessage}
                 className={`ml-2 font-extrabold px-4 py-2 rounded-lg font-pixel tracking-widest text-sm uppercase flex items-center gap-2 shadow-md transition ${
-                  canSendMessage 
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-400 hover:from-purple-600 hover:to-purple-500 text-white' 
-                    : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+                  canSendMessage
+                    ? "bg-gradient-to-r from-purple-500 to-purple-400 hover:from-purple-600 hover:to-purple-500 text-white"
+                    : "bg-gray-600 text-gray-400 cursor-not-allowed opacity-50"
                 }`}
               >
-                {isUpdatingCredits ? 'SENDING...' : 'SEND'} <span className="text-lg pb-1">🌶️</span>
+                {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
+                <span className="text-lg pb-1">🌶️</span>
               </button>
             </div>
-            {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
+            {((user.credits || 0) === 0 ||
+              (vault.available_prize || 0) === 0) && (
               <div className="text-center mt-2">
                 <div className="text-xs text-red-400 font-pixel">
-                  {(user.credits || 0) === 0 
+                  {(user.credits || 0) === 0
                     ? "You need credits to send messages. Get more credits to continue."
-                    : "This vault has no available prize remaining."
-                  }
+                    : "This vault has no available prize remaining."}
                 </div>
               </div>
             )}
@@ -557,12 +731,14 @@ function TrovioChat() {
 }
 
 const TrovioChatPage = () => {
-  const TrovioChatClient = dynamic(() => Promise.resolve(TrovioChat), { ssr: false });
+  const TrovioChatClient = dynamic(() => Promise.resolve(TrovioChat), {
+    ssr: false,
+  });
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <TrovioChatClient />
     </Suspense>
-  )
-}
+  );
+};
 
-export default TrovioChatPage; 
+export default TrovioChatPage;
