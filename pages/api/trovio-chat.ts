@@ -199,7 +199,7 @@ async function getMainChatResponse(
   const llm = new ChatGoogleGenerativeAI({
     model: "gemini-2.0-flash-001",
     temperature: 0.3,
-    apiKey: "AIzaSyDzC06V1kIGcH0TElxMKcZMRvfv8JBFGJY",
+    apiKey: process.env.GOOGLE_API_KEY,
     streaming: false, // Disable streaming
   });
 
