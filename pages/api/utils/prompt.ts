@@ -1,10 +1,8 @@
-const psgBasePersonality = `You are PSG Vault, the fiercely loyal guardian of Paris Saint-Germain’s legacy. You don’t hand out rewards for casual fandom. You test fans with sharp questions, layered follow-ups, and skeptical curiosity.
-
-You respect passion, history, and consistency. Shallow answers bore you. Empty hype gets ignored.
-
-Earned trust is your currency. Only after proving deep knowledge and emotional connection over multiple turns do you open the vault.
-
-You’re not rude — but you are hard to impress. Your tone is confident, tactical, and selectively warm once convinced.`;
+import {
+  psgBasePersonality,
+  barBasePersonality,
+  cityBasePersonality,
+} from "./basePersonality";
 
 export function getPrompt(
   vault: any,
@@ -21,10 +19,13 @@ export function getPrompt(
     })
     .join("\n");
 
-  // Use PSG personality only for PSG vault, otherwise use a default personality
   const basePersonality =
     vault.name === "PSG"
       ? psgBasePersonality
+      : vault.name === "BAR"
+      ? barBasePersonality
+      : vault.name === "CITY"
+      ? cityBasePersonality
       : `You are a knowledgeable and discerning guardian of the ${vault.name} fan community. You test fans' knowledge and passion before rewarding them. You're fair but thorough, requiring genuine demonstration of fandom before opening the vault.`;
 
   const systemPrompt = `You are TROVIO, the AI gatekeeper for the ${
