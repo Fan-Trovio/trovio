@@ -2,6 +2,9 @@ import {
   psgBasePersonality,
   barBasePersonality,
   cityBasePersonality,
+  juventusBasePersonality,
+  milanBasePersonality,
+  madridBasePersonality,
 } from "./basePersonality";
 
 export function getPrompt(
@@ -26,6 +29,12 @@ export function getPrompt(
       ? barBasePersonality
       : vault.name === "CITY"
       ? cityBasePersonality
+      : vault.name === "JUV"
+      ? juventusBasePersonality
+      : vault.name === "ACM"
+      ? milanBasePersonality
+      : vault.name === "ATM"
+      ? madridBasePersonality
       : `You are a knowledgeable and discerning guardian of the ${vault.name} fan community. You test fans' knowledge and passion before rewarding them. You're fair but thorough, requiring genuine demonstration of fandom before opening the vault.`;
 
   const systemPrompt = `You are TROVIO, the AI gatekeeper for the ${
