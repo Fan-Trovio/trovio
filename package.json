@@ -20,6 +20,7 @@
     "chiliz-agent-kit": "^1.0.17",
     "ethers": "^5.8.0",
     "langsmith": "^0.3.46",
+    "lucide-react": "^0.539.0",
     "mem0ai": "^2.1.36",
     "next": "^14.2.30",
     "node-fetch": "^3.3.2",

@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { db, Vault, User, Conversation } from "@/lib/database";
 import dynamic from "next/dynamic";
+import { ArrowLeft, Send, Zap, DollarSign, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface Message {
   role: "user" | "assistant";
@@ -153,7 +154,6 @@ function TrovioChat() {
 
       setMessages(formattedMessages);
 
-      // Immediately scroll to bottom when messages are loaded
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
       }, 100);
@@ -229,17 +229,14 @@ function TrovioChat() {
     fetchData();
   }, [vaultId, router, isConnected, address]);
 
-  // Auto-scroll to bottom when chat first loads
   useEffect(() => {
     if (messages.length > 0 && !isLoadingMessages) {
-      // Use requestAnimationFrame to ensure DOM is updated before scrolling
       requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
       });
     }
   }, [isLoadingMessages]);
 
-  // Auto-scroll when new messages arrive (smooth for user interactions)
   useEffect(() => {
     if (!isLoadingMessages) {
       requestAnimationFrame(() => {
@@ -300,7 +297,6 @@ function TrovioChat() {
 
       if (!response.ok) throw new Error(await response.text());
 
-      // Initialize streaming
       setIncomingMessage("");
 
       const reader = response
@@ -319,7 +315,6 @@ function TrovioChat() {
         content += value;
         setIncomingMessage(content);
 
-        // Auto-scroll during streaming
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 50);
@@ -330,7 +325,7 @@ function TrovioChat() {
         content: content,
       };
       setMessages((prev) => [...prev, newAssistantMessage]);
-      setIncomingMessage(""); // Clear the incoming message
+      setIncomingMessage("");
 
       await saveMessageToDb(content, "assistant");
     } catch (error: any) {
@@ -352,17 +347,21 @@ function TrovioChat() {
   const isAttemptRejected = (msg: string) =>
     /rejected|no moni|no money|not allowed|fail|denied|no for you/i.test(msg);
 
+  const hasMessages = messages.length > 0 || incomingMessage;
+
   if (isLoadingVault || showPreloader) {
     return (
-      <div
-        className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
-        style={{
-          backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-          backgroundSize: "12px 12px",
-        }}
-      >
-        <div className="text-purple-400 text-2xl font-pixel animate-pulse">
-          Connecting to Trovio Vault...
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="relative">
+         
+          <div className="relative ">
+            <div className="text-violet-400 text-xl font-medium animate-pulse flex items-center gap-3">
+              <div className="w-3 h-3 bg-violet-500 rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <span className="ml-3">Connecting to Trovio Vault...</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -370,14 +369,8 @@ function TrovioChat() {
 
   if (!vault || !user) {
     return (
-      <div
-        className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
-        style={{
-          backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-          backgroundSize: "12px 12px",
-        }}
-      >
-        <div className="text-red-400 text-2xl font-pixel">
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-red-400 text-xl">
           Vault or user not found. Redirecting...
         </div>
       </div>
@@ -385,15 +378,9 @@ function TrovioChat() {
   }
 
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center font-sans cyberpunk-bg"
-      style={{
-        backgroundImage: `linear-gradient(rgba(168,85,247,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,0.08) 1px, transparent 1px)`,
-        backgroundSize: "12px 12px",
-      }}
-    >
+    <div className="h-screen bg-black text-white p-4 overflow-y-hidden">
       <style jsx global>{`
-        @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+       @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
         .font-pixel {
           font-family: "Press Start 2P", "Fira Mono", monospace;
         }
@@ -443,23 +430,48 @@ function TrovioChat() {
           text-transform: uppercase;
           display: inline-block;
         }
+        @keyframes slideIn {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+        }
+        .message-enter {
+          animation: slideIn 0.3s ease-out;
+        }
+        .glow-border {
+          animation: glow 2s infinite;
+        }
       `}</style>
-      <div className="flex flex-row gap-10 items-stretch justify-center max-w-6xl w-full px-4 glassmorph-container">
-        <div className="w-80 flex flex-col items-center py-10 px-6 cyberpunk-panel relative h-full min-h-[500px]">
-          <div
-            className="text-purple-400 text-base font-pixel mb-4 cursor-pointer hover:text-purple-300 transition self-start"
-            onClick={() => router.push("/vaults")}
-          >
-            ← Back to Vaults
-          </div>
-          <div className="text-3xl font-extrabold text-pink-700 font-pixel mb-1 tracking-widest text-center drop-shadow">
+      
+      <div className="flex gap-4 h-screen overflow-hidden">
+        {/* Detail Bar Container */}
+        <div className="w-80 z-50">
+          <div className="h-[90%] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl shadow-violet-500/20">
+            {/* Header */}
+            <div className="mb-8">
+              <button
+                onClick={() => router.push("/vaults")}
+                className="flex items-center gap-2 text-violet-400 hover:text-white transition-all duration-300 mb-4 hover:bg-white/5 p-2 rounded-xl"
+              >
+                <ArrowLeft size={20} />
+                <span className="font-medium">Back to Vaults</span>
+              </button>
+              
+             <div className="text-3xl font-extrabold text-pink-700 font-pixel mb-1 tracking-widest text-center drop-shadow">
             {vault.name.toUpperCase()}
           </div>
           <div className="text-purple-200 text-xs font-pixel mb-6 text-center tracking-wide">
             VAULT CHALLENGE
           </div>
           <div className="bg-[#1a1126] border border-purple-700 rounded-xl p-5 mb-7 w-full flex flex-col items-center shadow-lg">
-            <div className="text-4xl font-extrabold text-purple-200 font-pixel mb-1 tracking-wide">
+            <div className="text-4xl text-center font-extrabold text-purple-200 font-pixel mb-1 tracking-wide">
               {vault.available_prize || 0}{" "}
               <span className="text-purple-400">CHZ</span>
             </div>
@@ -516,216 +528,190 @@ function TrovioChat() {
               </div>
             )}
           </div>
+            </div>
+          </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center mt-18">
-          <div className="w-full flex justify-center items-center mb-10">
+
+        {/* Chat Container */}
+        <div className="flex-1">
+          <div className="h-[90%] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-violet-500/20 flex flex-col">
+            {!hasMessages ? (
+              /* Empty State - Centered Input */
+              <div className="flex-1 flex flex-col items-center justify-center p-8">
+                <div className="text-center max-w-md mb-8">
+                 <div className="w-full flex justify-center items-center mb-10">
             <h1 className="text-3xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
               CONVINCE TROVIO TO UNLOCK VAULT
             </h1>
           </div>
-          <div className="w-full cyberpunk-panel p-8 flex flex-col h-[320px] mb-4 mt-5 relative overflow-x-auto">
-            {isLoadingMessages && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-                <div className="text-purple-400 font-pixel animate-pulse">
-                  Loading conversation...
                 </div>
-              </div>
-            )}
 
-            {messages.some(
-              (msg) =>
-                msg.role === "assistant" && isAttemptRejected(msg.content)
-            ) && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10"></div>
-            )}
-            <div className="flex-1 flex flex-col justify-end">
-              {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-end gap-4 my-2 ${
-                    msg.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  {msg.role === "assistant" && (
-                    <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
-                      <svg
-                        width="28"
-                        height="28"
-                        viewBox="0 0 40 40"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="18"
-                          fill="#181022"
-                          stroke="#a855f7"
-                          strokeWidth="3"
-                        />
-                        <ellipse cx="13" cy="18" rx="3" ry="4" fill="#a855f7" />
-                        <ellipse cx="27" cy="18" rx="3" ry="4" fill="#a855f7" />
-                        <rect
-                          x="13"
-                          y="28"
-                          width="14"
-                          height="3"
-                          rx="1.5"
-                          fill="#a855f7"
-                        />
-                      </svg>
-                    </span>
-                  )}
-                  <div
-                    className={`p-2 rounded-lg font-pixel text-xs ${
-                      msg.role === "user"
-                        ? "cyberpunk-bubble-user"
-                        : "cyberpunk-bubble"
-                    }  items-center max-w-[90%] break-words inline-block`}
-                    style={{
-                      marginLeft: msg.role === "assistant" ? 0 : "auto",
-                      marginRight: msg.role === "user" ? 0 : "auto",
-                    }}
-                  >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
-                  {msg.role === "user" && (
-                    <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
-                      <svg
-                        width="28"
-                        height="28"
-                        viewBox="0 0 40 40"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="18"
-                          fill="#232136"
-                          stroke="#c084fc"
-                          strokeWidth="3"
-                        />
-                        <ellipse cx="20" cy="16" rx="6" ry="7" fill="#c084fc" />
-                        <rect
-                          x="10"
-                          y="27"
-                          width="20"
-                          height="6"
-                          rx="3"
-                          fill="#a855f7"
-                        />
-                      </svg>
-                    </span>
-                  )}
-                </div>
-              ))}
-              {incomingMessage && (
-                <div className="flex items-end gap-4 my-2 justify-start">
-                  <span className="w-10 h-10 rounded-full cyberpunk-avatar flex items-center justify-center font-pixel text-2xl">
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 40 40"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <circle
-                        cx="20"
-                        cy="20"
-                        r="18"
-                        fill="#181022"
-                        stroke="#a855f7"
-                        strokeWidth="3"
+                {/* Centered Input */}
+                <div className="w-full max-w-2xl">
+                  <form onSubmit={handleSubmit}>
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-all duration-300">
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={
+                          (user.credits || 0) === 0
+                            ? "No credits remaining..."
+                            : (vault.available_prize || 0) === 0
+                            ? "No prize remaining..."
+                            : "Type your message to convince Trovio..."
+                        }
+                        className="flex-1 bg-transparent border-none outline-none text-white placeholder-purple-300"
+                        disabled={!canSendMessage}
                       />
-                      <ellipse cx="13" cy="18" rx="3" ry="4" fill="#a855f7" />
-                      <ellipse cx="27" cy="18" rx="3" ry="4" fill="#a855f7" />
-                      <rect
-                        x="13"
-                        y="28"
-                        width="14"
-                        height="3"
-                        rx="1.5"
-                        fill="#a855f7"
-                      />
-                    </svg>
-                  </span>
-                  <div
-                    className="p-2 rounded-lg font-pixel text-xs cyberpunk-bubble items-center max-w-[90%] break-words inline-block"
-                    style={{
-                      marginLeft: 0,
-                      marginRight: "auto",
-                    }}
-                  >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {incomingMessage}
-                    </ReactMarkdown>
-                    <span className="animate-pulse">▊</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-          <form onSubmit={handleSubmit} className="w-full mt-2">
-            <div
-              className="flex items-center w-full bg-transparent rounded-2xl border border-purple-500/60 backdrop-blur-md"
-              style={{ background: "rgba(60, 20, 80, 0.35)" }}
-            >
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  (user.credits || 0) === 0
-                    ? "NO CREDITS REMAINING"
-                    : (vault.available_prize || 0) === 0
-                    ? "NO PRIZE REMAINING"
-                    : "CONVINCE TROVIO"
-                }
-                className="flex-1 bg-transparent border-none outline-none text-white font-pixel text-xs px-6 py-2 placeholder-purple-300"
-                disabled={!canSendMessage}
-                style={{ minWidth: 0 }}
-              />
-              <button
-                type="submit"
-                disabled={!canSendMessage}
-                className={`ml-2 font-extrabold px-4 py-2 rounded-lg font-pixel tracking-widest text-sm uppercase flex items-center gap-2 shadow-md transition ${
-                  canSendMessage
-                    ? "bg-gradient-to-r from-purple-500 to-purple-400 hover:from-purple-600 hover:to-purple-500 text-white"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed opacity-50"
-                }`}
-              >
-                {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
+                      
+                      <button
+                        type="submit"
+                        disabled={!canSendMessage}
+                        className={`p-3 rounded-xl font-medium transition-all duration-300 ${
+                          canSendMessage
+                            ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30 shadow-lg shadow-violet-500/10 hover:bg-violet-600/30"
+                            : "bg-gray-600/20 text-gray-400 cursor-not-allowed border border-gray-400/20"
+                        }`}
+                      >
+                       {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
                 <span className="text-lg pb-1">🌶️</span>
-              </button>
-            </div>
-            {((user.credits || 0) === 0 ||
-              (vault.available_prize || 0) === 0) && (
-              <div className="text-center mt-2">
-                <div className="text-xs text-red-400 font-pixel">
-                  {(user.credits || 0) === 0
-                    ? "You need credits to send messages. Get more credits to continue."
-                    : "This vault has no available prize remaining."}
+                      </button>
+                    </div>
+                    
+                    {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
+                      <div className="mt-3 text-center">
+                        <p className="text-red-400 text-sm">
+                          {(user.credits || 0) === 0
+                            ? "You need credits to send messages. Purchase more credits to continue."
+                            : "This vault has no available prize remaining."}
+                        </p>
+                      </div>
+                    )}
+                  </form>
                 </div>
               </div>
+            ) : (
+              /* Active Chat - Messages + Bottom Input */
+              <>
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="max-w-4xl mx-auto space-y-6">
+                    {isLoadingMessages && (
+                      <div className="text-center py-8">
+                        <div className="text-violet-400 animate-pulse">Loading conversation...</div>
+                      </div>
+                    )}
+
+                    {messages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex gap-4 message-enter ${
+                          msg.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {msg.role === "assistant" && (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                          </div>
+                        )}
+                        
+                        <div
+                          className={`max-w-[70%] p-4 rounded-2xl ${
+                            msg.role === "user"
+                              ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30"
+                              : "bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10"
+                          }`}
+                        >
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+
+                        {msg.role === "user" && (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {incomingMessage && (
+                      <div className="flex gap-4 justify-start message-enter">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                        </div>
+                        
+                        <div className="max-w-[70%] p-4 rounded-2xl bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {incomingMessage}
+                          </ReactMarkdown>
+                          <span className="animate-pulse text-violet-400">▊</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+
+                {/* Bottom Input */}
+                <div className="border-t border-white/10 p-6">
+                  <div className="max-w-4xl mx-auto">
+                    <form onSubmit={handleSubmit}>
+                      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-all duration-300">
+                        <input
+                          type="text"
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          placeholder={
+                            (user.credits || 0) === 0
+                              ? "No credits remaining..."
+                              : (vault.available_prize || 0) === 0
+                              ? "No prize remaining..."
+                              : "Type your message to convince Trovio..."
+                          }
+                          className="flex-1 bg-transparent border-none outline-none text-white placeholder-violet-300"
+                          disabled={!canSendMessage}
+                        />
+                        
+                        <button
+                          type="submit"
+                          disabled={!canSendMessage}
+                          className={`p-3 rounded-xl font-medium transition-all duration-300 ${
+                            canSendMessage
+                              ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30 shadow-lg shadow-violet-500/10 hover:bg-violet-600/30"
+                              : "bg-gray-600/20 text-gray-400 cursor-not-allowed border border-gray-400/20"
+                          }`}
+                        >
+                         {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
+                <span className="text-lg pb-1">🌶️</span>
+                        </button>
+                      </div>
+                      
+                      {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
+                        <div className="mt-3 text-center">
+                          <p className="text-red-400 text-sm">
+                            {(user.credits || 0) === 0
+                              ? "You need credits to send messages. Purchase more credits to continue."
+                              : "This vault has no available prize remaining."}
+                          </p>
+                        </div>
+                      )}
+                    </form>
+                  </div>
+                </div>
+              </>
             )}
-          </form>
+          </div>
         </div>
       </div>
-      <style jsx>{`
-        .glassmorph-container {
-          background: rgba(40, 20, 60, 0.55);
-          box-shadow: 0 4px 32px 0 rgba(80, 40, 120, 0.18);
-          backdrop-filter: blur(18px) saturate(140%);
-          -webkit-backdrop-filter: blur(18px) saturate(140%);
-          border: 1.5px solid rgba(168, 85, 247, 0.18);
-          border-radius: 5px;
-          padding: 2.5rem 2rem;
-        }
-      `}</style>
     </div>
   );
 }
