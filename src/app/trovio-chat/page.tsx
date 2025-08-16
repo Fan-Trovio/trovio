@@ -12,7 +12,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { db, Vault, User, Conversation } from "@/lib/database";
 import dynamic from "next/dynamic";
-import { ArrowLeft, Send, Zap, DollarSign, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Zap,
+  DollarSign,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -351,14 +359,19 @@ function TrovioChat() {
 
   if (isLoadingVault || showPreloader) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="relative">
-         
-          <div className="relative ">
+          <div className="relative">
             <div className="text-violet-400 text-xl font-medium animate-pulse flex items-center gap-3">
               <div className="w-3 h-3 bg-violet-500 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div
+                className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.1s" }}
+              ></div>
+              <div
+                className="w-3 h-3 bg-pink-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
               <span className="ml-3">Connecting to Trovio Vault...</span>
             </div>
           </div>
@@ -369,7 +382,7 @@ function TrovioChat() {
 
   if (!vault || !user) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-red-400 text-xl">
           Vault or user not found. Redirecting...
         </div>
@@ -378,69 +391,38 @@ function TrovioChat() {
   }
 
   return (
-    <div className="h-screen bg-black text-white p-4 overflow-y-hidden">
+    <div className="h-screen bg-[#0a0a0a] text-white overflow-hidden">
       <style jsx global>{`
-       @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
         .font-pixel {
           font-family: "Press Start 2P", "Fira Mono", monospace;
         }
-        .cyberpunk-panel {
-          border-radius: 18px;
-          border: 2px solid #a855f7;
-          background: linear-gradient(135deg, #181022 80%, #2d0a3a 100%);
-        }
-        .cyberpunk-input {
-          background: #181022;
-          border: 2px solid #a855f7;
-          color: #e9d5ff;
-        }
-        .cyberpunk-btn {
-          background: linear-gradient(90deg, #a855f7 60%, #c084fc 100%);
-          color: #fff;
-          border: 2px solid #c084fc;
-          transition: background 0.2s;
-        }
-        .cyberpunk-btn:active {
-          background: #7c3aed;
-        }
-        .cyberpunk-avatar {
-          background: linear-gradient(135deg, #a855f7 60%, #c084fc 100%);
-          border: 3px solid #c084fc;
-        }
-        .cyberpunk-bubble {
-          background: #232136;
-          border: 2px solid #a855f7;
-          color: #e9d5ff;
-        }
-        .cyberpunk-bubble-user {
-          background: #3b0764;
-          border: 2px solid #c084fc;
-          color: #fff;
-        }
-        .cyberpunk-reject {
-          background: linear-gradient(90deg, #a855f7 60%, #c084fc 100%);
-          color: #fff;
-          border: 3px solid #c084fc;
-          font-size: 1.3rem;
-          font-family: "Press Start 2P", "Fira Mono", monospace;
-          border-radius: 12px;
-          padding: 0.7rem 2.5rem;
-          margin-top: 0.5rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          display: inline-block;
-        }
         @keyframes slideIn {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
         @keyframes glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
-          50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+          0%,
+          100% {
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+          }
         }
         .message-enter {
           animation: slideIn 0.3s ease-out;
@@ -449,30 +431,34 @@ function TrovioChat() {
           animation: glow 2s infinite;
         }
       `}</style>
-      
-      <div className="flex gap-4 h-screen overflow-hidden">
-        {/* Detail Bar Container */}
-        <div className="w-80 z-50">
-          <div className="h-[90%] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl shadow-violet-500/20">
-            {/* Header */}
-            <div className="mb-8">
-              <button
-                onClick={() => router.push("/vaults")}
-                className="flex items-center gap-2 text-violet-400 hover:text-white transition-all duration-300 mb-4 hover:bg-white/5 p-2 rounded-xl"
-              >
-                <ArrowLeft size={20} />
-                <span className="font-medium">Back to Vaults</span>
-              </button>
-              
-             <div className="text-3xl font-extrabold text-pink-700 font-pixel mb-1 tracking-widest text-center drop-shadow">
-            {vault.name.toUpperCase()}
+
+      <div className="flex z-50 h-screen items-center justify-center relative">
+        {/* Sidebar */}
+        <div className="w-80  h-[90%] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl shadow-violet-500/20 mx-10 ">
+          <div className="mb-6">
+            <button
+              onClick={() => router.push("/vaults")}
+              className="flex items-center gap-2 text-violet-400 hover:text-white transition-all duration-300 mb-4  p-2 rounded-xl"
+            >
+              <ArrowLeft size={20} />
+              <span className="font-normal text-sm font-pixel">Back to Vaults</span>
+            </button>
           </div>
-          <div className="text-purple-200 text-xs font-pixel mb-6 text-center tracking-wide">
-            VAULT CHALLENGE
+
+          {/* Vault Info */}
+          <div className="mb-6">
+            <div className="text-2xl font-extrabold text-pink-700 font-pixel mb-1 tracking-widest text-center drop-shadow">
+              {vault.name.toUpperCase()}
+            </div>
+            <div className="text-purple-200 text-xs font-pixel mb-6 text-center tracking-wide">
+              VAULT CHALLENGE
+            </div>
           </div>
-          <div className="bg-[#1a1126] border border-purple-700 rounded-xl p-5 mb-7 w-full flex flex-col items-center shadow-lg">
+
+          {/* Prize and Credits Info */}
+          <div className="bg-[#1a1126] border border-purple-700 rounded-xl p-5 mb-4 w-full flex flex-col items-center shadow-lg">
             <div className="text-4xl text-center font-extrabold text-purple-200 font-pixel mb-1 tracking-wide">
-              {vault.available_prize || 0}{" "}
+              {vault.available_prize || 0} <br />
               <span className="text-purple-400">CHZ</span>
             </div>
             <div className="text-purple-400 font-pixel text-xs mb-4 uppercase tracking-widest">
@@ -528,101 +514,132 @@ function TrovioChat() {
               </div>
             )}
           </div>
-            </div>
-          </div>
         </div>
 
-        {/* Chat Container */}
-        <div className="flex-1">
-          <div className="h-[90%] bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-violet-500/20 flex flex-col">
+        {/* Main Chat Area */}
+        <div className="flex-1 h-screen flex flex-col items-center justify-center p-8 relative">
+          {/* Chat Container - Dynamic Size */}
+          <div
+            className={`bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl transition-all duration-500 ease-in-out flex flex-col ${
+              hasMessages
+                ? "w-full max-w-4xl h-[90%] "
+                : "w-full max-w-lg h-auto mt-20 py-8"
+            }`}
+          >
             {!hasMessages ? (
-              /* Empty State - Centered Input */
-              <div className="flex-1 flex flex-col items-center justify-center p-8">
-                <div className="text-center max-w-md mb-8">
-                 <div className="w-full flex justify-center items-center mb-10">
-            <h1 className="text-3xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
-              CONVINCE TROVIO TO UNLOCK VAULT
-            </h1>
-          </div>
+              /* Small Container - No Messages */
+
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <h1 className="text-xl font-extrabold text-purple-400 font-pixel tracking-widest uppercase text-center">
+                    CONVINCE TROVIO TO UNLOCK VAULT
+                  </h1>
                 </div>
 
-                {/* Centered Input */}
-                <div className="w-full max-w-2xl">
-                  <form onSubmit={handleSubmit}>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-all duration-300">
-                      <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder={
-                          (user.credits || 0) === 0
-                            ? "No credits remaining..."
-                            : (vault.available_prize || 0) === 0
-                            ? "No prize remaining..."
-                            : "Type your message to convince Trovio..."
-                        }
-                        className="flex-1 bg-transparent border-none outline-none text-white placeholder-purple-300"
-                        disabled={!canSendMessage}
-                      />
-                      
-                      <button
-                        type="submit"
-                        disabled={!canSendMessage}
-                        className={`p-3 rounded-xl font-medium transition-all duration-300 ${
-                          canSendMessage
-                            ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30 shadow-lg shadow-violet-500/10 hover:bg-violet-600/30"
-                            : "bg-gray-600/20 text-gray-400 cursor-not-allowed border border-gray-400/20"
-                        }`}
-                      >
-                       {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
-                <span className="text-lg pb-1">🌶️</span>
-                      </button>
+                {/* Quick Actions */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="bg-[#3a3a3a] p-3 rounded-lg text-center">
+                    <div className="text-violet-400 text-sm font-medium mb-1">
+                      Saved Prompt
                     </div>
-                    
-                    {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
-                      <div className="mt-3 text-center">
-                        <p className="text-red-400 text-sm">
-                          {(user.credits || 0) === 0
-                            ? "You need credits to send messages. Purchase more credits to continue."
-                            : "This vault has no available prize remaining."}
-                        </p>
-                      </div>
-                    )}
-                  </form>
+                    <div className="text-gray-400 text-xs">Templates</div>
+                  </div>
+                  <div className="bg-[#3a3a3a] p-3 rounded-lg text-center">
+                    <div className="text-violet-400 text-sm font-medium mb-1">
+                      Media Type
+                    </div>
+                    <div className="text-gray-400 text-xs">Selection</div>
+                  </div>
+                  <div className="bg-[#3a3a3a] p-3 rounded-lg text-center">
+                    <div className="text-violet-400 text-sm font-medium mb-1">
+                      Multilingual
+                    </div>
+                    <div className="text-gray-400 text-xs">Support</div>
+                  </div>
                 </div>
+                <form
+                  onSubmit={handleSubmit}
+                  className="relative flex flex-col h-full"
+                >
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder={
+                        (user.credits || 0) === 0
+                          ? "No credits remaining..."
+                          : (vault.available_prize || 0) === 0
+                          ? "No prize remaining..."
+                          : "Type your message to convince Trovio..."
+                      }
+                      className="w-full bg-[#1a1a1a] border border-gray-600 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors"
+                      disabled={!canSendMessage}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!canSendMessage}
+                      className={`absolute right-2 top-1/2 -translate-y-1/2 w-min px-4 h-8 rounded-lg transition-all duration-300 flex items-center justify-center cursor-pointer ${
+                        canSendMessage
+                          ? "bg-violet-600 hover:bg-violet-700 text-white"
+                          : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
+                      <span className="text-lg pb-1">🌶️</span>
+                    </button>
+                  </div>
+                </form>
+
+                {((user.credits || 0) === 0 ||
+                  (vault.available_prize || 0) === 0) && (
+                  <div className="mt-3 text-center">
+                    <p className="text-red-400 text-sm">
+                      {(user.credits || 0) === 0
+                        ? "You need credits to send messages"
+                        : "This vault has no available prize remaining"}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
-              /* Active Chat - Messages + Bottom Input */
+              /* Large Container - With Messages */
               <>
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-6">
-                  <div className="max-w-4xl mx-auto space-y-6">
+                  <div className="space-y-4">
                     {isLoadingMessages && (
-                      <div className="text-center py-8">
-                        <div className="text-violet-400 animate-pulse">Loading conversation...</div>
+                      <div className="text-center py-4">
+                        <div className="text-violet-400 animate-pulse">
+                          Loading conversation...
+                        </div>
                       </div>
                     )}
 
                     {messages.map((msg, idx) => (
                       <div
                         key={idx}
-                        className={`flex gap-4 message-enter ${
+                        className={`flex gap-3 message-enter ${
                           msg.role === "user" ? "justify-end" : "justify-start"
                         }`}
                       >
                         {msg.role === "assistant" && (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
-                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                             </svg>
                           </div>
                         )}
-                        
+
                         <div
-                          className={`max-w-[70%] p-4 rounded-2xl ${
+                          className={`max-w-[70%] p-3 rounded-2xl ${
                             msg.role === "user"
-                              ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30"
-                              : "bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10"
+                              ? "bg-violet-600 text-white"
+                              : "bg-[#3a3a3a] text-gray-100"
                           }`}
                         >
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -631,9 +648,13 @@ function TrovioChat() {
                         </div>
 
                         {msg.role === "user" && (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                             </svg>
                           </div>
                         )}
@@ -641,18 +662,24 @@ function TrovioChat() {
                     ))}
 
                     {incomingMessage && (
-                      <div className="flex gap-4 justify-start message-enter">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      <div className="flex gap-3 justify-start message-enter">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-violet-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                          <svg
+                            className="w-4 h-4 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                           </svg>
                         </div>
-                        
-                        <div className="max-w-[70%] p-4 rounded-2xl bg-white/5 backdrop-blur-sm text-gray-100 border border-white/10">
+
+                        <div className="max-w-[70%] p-3 rounded-2xl bg-[#3a3a3a] text-gray-100">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {incomingMessage}
                           </ReactMarkdown>
-                          <span className="animate-pulse text-violet-400">▊</span>
+                          <span className="animate-pulse text-violet-400">
+                            ▊
+                          </span>
                         </div>
                       </div>
                     )}
@@ -662,49 +689,53 @@ function TrovioChat() {
                 </div>
 
                 {/* Bottom Input */}
-                <div className="border-t border-white/10 p-6">
-                  <div className="max-w-4xl mx-auto">
-                    <form onSubmit={handleSubmit}>
-                      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 transition-all duration-300">
-                        <input
-                          type="text"
-                          value={input}
-                          onChange={(e) => setInput(e.target.value)}
-                          placeholder={
-                            (user.credits || 0) === 0
-                              ? "No credits remaining..."
-                              : (vault.available_prize || 0) === 0
-                              ? "No prize remaining..."
-                              : "Type your message to convince Trovio..."
+                <div className="border-t border-gray-600 p-4">
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={
+                          (user.credits || 0) === 0
+                            ? "No credits remaining..."
+                            : (vault.available_prize || 0) === 0
+                            ? "No prize remaining..."
+                            : "Type your message..."
+                        }
+                        className="w-full bg-[#1a1a1a] border border-gray-600 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors"
+                        disabled={!canSendMessage}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmit(e as any);
                           }
-                          className="flex-1 bg-transparent border-none outline-none text-white placeholder-violet-300"
-                          disabled={!canSendMessage}
-                        />
-                        
-                        <button
-                          type="submit"
-                          disabled={!canSendMessage}
-                          className={`p-3 rounded-xl font-medium transition-all duration-300 ${
-                            canSendMessage
-                              ? "bg-violet-600/20 backdrop-blur-sm text-white border border-violet-400/30 shadow-lg shadow-violet-500/10 hover:bg-violet-600/30"
-                              : "bg-gray-600/20 text-gray-400 cursor-not-allowed border border-gray-400/20"
-                          }`}
-                        >
-                         {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
-                <span className="text-lg pb-1">🌶️</span>
-                        </button>
+                        }}
+                      />
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!canSendMessage}
+                        className={`absolute right-2 top-1/2 -translate-y-1/2 px-4 h-8 rounded-lg transition-all duration-300 flex items-center justify-center ${
+                          canSendMessage
+                            ? "bg-violet-600 hover:bg-violet-700 text-white"
+                            : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {isUpdatingCredits ? "SENDING..." : "SEND"}{" "}
+                <span className="text-lg pl-1">🌶️</span>
+                      </button>
+                    </div>
+
+                    {((user.credits || 0) === 0 ||
+                      (vault.available_prize || 0) === 0) && (
+                      <div className="mt-2 text-center">
+                        <p className="text-red-400 text-sm">
+                          {(user.credits || 0) === 0
+                            ? "You need credits to send messages"
+                            : "This vault has no available prize remaining"}
+                        </p>
                       </div>
-                      
-                      {((user.credits || 0) === 0 || (vault.available_prize || 0) === 0) && (
-                        <div className="mt-3 text-center">
-                          <p className="text-red-400 text-sm">
-                            {(user.credits || 0) === 0
-                              ? "You need credits to send messages. Purchase more credits to continue."
-                              : "This vault has no available prize remaining."}
-                          </p>
-                        </div>
-                      )}
-                    </form>
+                    )}
                   </div>
                 </div>
               </>
