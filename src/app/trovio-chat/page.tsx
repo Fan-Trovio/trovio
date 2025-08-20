@@ -391,7 +391,288 @@ function TrovioChat() {
   }
 
   return (
-    <div className="h-screen bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="h-screen relative bg-[#000000] text-white overflow-hidden">
+     
+     <div className="absolute top-20 right-0 flex items-center justify-center">
+        {/* Outermost circle - very low opacity */}
+        <div 
+          className="bg-violet-500/5 w-[560px] h-[560px] absolute rounded-full animate-pulse blur-xl"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0s',
+            animationDuration: '4s'
+          }}
+        />
+        <div 
+          className="bg-violet-500/10 w-[540px] h-[540px] absolute rounded-full animate-pulse blur-xl"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0s',
+            animationDuration: '4s'
+          }}
+        />
+        
+        {/* Extra large circle */}
+        <div 
+          className="bg-violet-500/15 w-[500px] h-[500px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.3s',
+            animationDuration: '3.8s'
+          }}
+        />
+        
+        {/* Large circle */}
+        <div 
+          className="bg-violet-500/20 w-[460px] h-[460px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.6s',
+            animationDuration: '3.6s'
+          }}
+        />
+        
+        {/* Second largest circle */}
+        <div 
+          className="bg-violet-500/25 w-[420px] h-[420px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.9s',
+            animationDuration: '3.4s'
+          }}
+        />
+        
+        {/* Medium large circle */}
+        <div 
+          className="bg-violet-500/30 w-[380px] h-[380px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.2s',
+            animationDuration: '3.2s'
+          }}
+        />
+        
+        {/* Medium circle */}
+        <div 
+          className="bg-violet-500/40 w-[340px] h-[340px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.5s',
+            animationDuration: '3s'
+          }}
+        />
+        
+        {/* Medium small circle */}
+        <div 
+          className="bg-violet-500/50 w-[300px] h-[300px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.8s',
+            animationDuration: '2.8s'
+          }}
+        />
+        
+        {/* Smaller circle */}
+        <div 
+          className="bg-violet-500/60 w-[260px] h-[260px] absolute rounded-full animate-pulse blur"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.1s',
+            animationDuration: '2.6s'
+          }}
+        />
+        
+        {/* Small circle */}
+        <div 
+          className="bg-violet-500/70 w-[220px] h-[220px] absolute rounded-full animate-pulse blur"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.4s',
+            animationDuration: '2.4s'
+          }}
+        />
+        
+        {/* Smaller circle */}
+        <div 
+          className="bg-violet-500/80 w-[180px] h-[180px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.7s',
+            animationDuration: '2.2s'
+          }}
+        />
+        
+        {/* Very small circle */}
+        <div 
+          className="bg-violet-500/85 w-[140px] h-[140px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3s',
+            animationDuration: '2s'
+          }}
+        />
+        
+        {/* Tiny circle */}
+        <div 
+          className="bg-violet-500/90 w-[100px] h-[100px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3.3s',
+            animationDuration: '1.8s'
+          }}
+        />
+        
+        {/* Smallest circle - highest opacity */}
+        <div 
+          className="bg-violet-500/95 w-[60px] h-[60px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3.6s',
+            animationDuration: '1.5s'
+          }}
+        />
+      </div>
+       <div className="absolute bottom-10 left-1/3 flex items-center justify-center">
+        {/* Outermost circle - very low opacity */}
+        <div 
+          className="bg-violet-500/5 w-[560px] h-[560px] absolute rounded-full animate-pulse blur-xl"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0s',
+            animationDuration: '4s'
+          }}
+        />
+        <div 
+          className="bg-violet-500/10 w-[540px] h-[540px] absolute rounded-full animate-pulse blur-xl"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0s',
+            animationDuration: '4s'
+          }}
+        />
+        
+        {/* Extra large circle */}
+        <div 
+          className="bg-violet-500/15 w-[500px] h-[500px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.3s',
+            animationDuration: '3.8s'
+          }}
+        />
+        
+        {/* Large circle */}
+        <div 
+          className="bg-violet-500/20 w-[460px] h-[460px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.6s',
+            animationDuration: '3.6s'
+          }}
+        />
+        
+        {/* Second largest circle */}
+        <div 
+          className="bg-violet-500/25 w-[420px] h-[420px] absolute rounded-full animate-pulse blur-lg"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '0.9s',
+            animationDuration: '3.4s'
+          }}
+        />
+        
+        {/* Medium large circle */}
+        <div 
+          className="bg-violet-500/30 w-[380px] h-[380px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.2s',
+            animationDuration: '3.2s'
+          }}
+        />
+        
+        {/* Medium circle */}
+        <div 
+          className="bg-violet-500/40 w-[340px] h-[340px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.5s',
+            animationDuration: '3s'
+          }}
+        />
+        
+        {/* Medium small circle */}
+        <div 
+          className="bg-violet-500/50 w-[300px] h-[300px] absolute rounded-full animate-pulse blur-md"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '1.8s',
+            animationDuration: '2.8s'
+          }}
+        />
+        
+        {/* Smaller circle */}
+        <div 
+          className="bg-violet-500/60 w-[260px] h-[260px] absolute rounded-full animate-pulse blur"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.1s',
+            animationDuration: '2.6s'
+          }}
+        />
+        
+        {/* Small circle */}
+        <div 
+          className="bg-violet-500/70 w-[220px] h-[220px] absolute rounded-full animate-pulse blur"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.4s',
+            animationDuration: '2.4s'
+          }}
+        />
+        
+        {/* Smaller circle */}
+        <div 
+          className="bg-violet-500/80 w-[180px] h-[180px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '2.7s',
+            animationDuration: '2.2s'
+          }}
+        />
+        
+        {/* Very small circle */}
+        <div 
+          className="bg-violet-500/85 w-[140px] h-[140px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3s',
+            animationDuration: '2s'
+          }}
+        />
+        
+        {/* Tiny circle */}
+        <div 
+          className="bg-violet-500/90 w-[100px] h-[100px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3.3s',
+            animationDuration: '1.8s'
+          }}
+        />
+        
+        {/* Smallest circle - highest opacity */}
+        <div 
+          className="bg-violet-500/95 w-[60px] h-[60px] absolute rounded-full animate-pulse blur-sm"
+          style={{
+            clipPath: 'polygon(50% 0%, 80% 10%, 100% 35%, 100% 70%, 80% 90%, 50% 100%, 20% 90%, 0% 70%, 0% 35%, 20% 10%)',
+            animationDelay: '3.6s',
+            animationDuration: '1.5s'
+          }}
+        />
+      </div>
+
+
       <style jsx global>{`
         @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
         .font-pixel {
