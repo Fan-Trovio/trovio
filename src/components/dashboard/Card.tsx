@@ -6,11 +6,15 @@ import Link from "next/link";
 const Card = ({ vault,bg, hero,onHandleChat }:{vault:object,bg:string,hero:string,onHandleChat:Function}) => {
   return (
     <div
-      className=" relative shadow-lg border border-white/10 rounded-3xl  bg-black/20 hover:bg-black/30 transition-all duration-300"
+      className=" relative shadow-lg border border-white/10 rounded-3xl  bg-black/50 hover:bg-black/60 transition-all duration-300"
       style={{ width: 361, marginRight: 14 }}
     >
+       
       {/* Card container with text and background image */}
-      <div className="relative flex flex-col justify-end h-[248px] md:h-[16.75rem] bg-hero-card rounded-3xl px-6 md:px-8 py-7 transition-all overflow-hidden">
+      <div className="relative flex flex-col justify-end h-[230px] md:h-[14.75rem] bg-hero-card rounded-3xl px-6 md:px-8 py-7 transition-all overflow-hidden">
+        <div className="absolute top-7 left-4 text-xs text-grey-400 font-pixel bg-grey-900/40 px-3 py-1 rounded-full border border-grey-700 shadow-sm">
+                                            {vault.blockchain?.toUpperCase() || 'CHILIZ'}
+                                        </div>
         {/* Card Text Content */}
         <span className="text-2xl font-bold mb-2 max-w-[16rem] z-10">
           {vault?.name || 'Vault Name'}
