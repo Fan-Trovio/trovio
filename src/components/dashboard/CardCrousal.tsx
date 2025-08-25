@@ -105,12 +105,12 @@ const CardCrousal = ({vaults,onHandleChat}:{vaults:[], onHandleChat:Function}) =
     >
      
       {/* Title */}
-      <h1 className=" top-11 left-1/2  text-6xl md:text-[7.5rem] font-black uppercase tracking-tight pointer-events-none whitespace-nowrap text-transparent bg-gradient-to-b from-violet-400/35 to-transparent bg-clip-text">
+      <h1 className="  mt-4 text-3xl md:text-6xl font-black uppercase tracking-tight pointer-events-none whitespace-nowrap text-transparent bg-gradient-to-b from-violet-400/35 to-transparent bg-clip-text">
         Tokens
       </h1>
 
       {/* Carousel Container */}
-      <div className="w-full max-w-6xl h-[450px] relative mb-8 " style={{ perspective: '1000px' }}>
+      <div className="w-full max-w-6xl h-[380px] relative " style={{ perspective: '1000px' }}>
         {/* Left Arrow */}
         <button
           onClick={() => updateCarousel(currentIndex - 1)}

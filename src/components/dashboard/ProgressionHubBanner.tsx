@@ -7,7 +7,7 @@ import Image from 'next/image';
 const ProgressionHubBanner = () => {
   return (
     
-      <div className="relative rounded-3xl min-h-[26rem]  md:overflow-hidden pt-[144px] pb-9 md:py-12 px-4 md:px-[3.25rem] border border-white/10 shadow-2xl shadow-violet-500/20 mb-8">
+      <div className="relative rounded-3xl h-1/3  md:overflow-hidden pt-[144px] pb-9 md:py-12 px-4 md:px-[3.25rem] border border-white/10 shadow-2xl shadow-violet-500/20 ">
         
         {/* === Text Content === */}
         <div className="relative flex flex-col md-max:items-center md-max:text-center max-w-[520px] md:max-w-[31rem] md-max:mx-auto z-20">
@@ -20,12 +20,7 @@ const ProgressionHubBanner = () => {
             milestones together with enhanced cashbacks. The higher your rank, the
             more you get – including increased cashback and premium rank rewards.
           </span>
-          <button
-            type="button"
-            className="btn justify-center relative group w-full max-w-[11rem] mt-8 btn--text btn--quaternary btn--large"
-          >
-            <span className="btn-name">Learn More</span>
-          </button>
+         
         </div>
 
         {/* === Images === */}
